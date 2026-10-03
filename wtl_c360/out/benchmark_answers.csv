@@ -1,0 +1,95 @@
+question_id,answer,sql_or_sources,refused
+BQ-001,686211,SELECT COUNT(*) AS customers_with_email_consent FROM customers WHERE consent_email LIMIT 100,false
+BQ-002,"Found 5 relevant masked record(s). [policy:POL-COLL-001 v3.0 §5.2 Contact frequency] ""A maximum of **3 outbound call attempts in any rolling 7 days** per case. Automated reminders count as attempts
+when they ask for payment."" | [policy:IR-2026-0923 v1.0 Incident Report IR-2026-0923] ""**When**: 23-24 September 2026. The predictive dialer was degraded; outbound call capacity fell about 60%.
+Expect fewer call attempts and right-party contacts on those days; this is not a change in customer behaviour."" | [policy:REG-SUM-001 v2026.1 Provincial Collection Rules Summary (REG-SUM-001) — synthetic summary] ""This hackathon summary simplifies provincial rules into one bank policy (see POL-COLL-001). Teams should
+treat POL-COLL-001 as the rule set to apply: local-time contact hours, a cap of 3 call attempts in 7 days,
+Sunday limits where Sunday contact is permitted, no contact on statutory holidays, French-language service
+for French-speaking customers, and the stay of proceedings during insolvency.""",policy:POL-COLL-001 v3.0 §5.2 Contact frequency; policy:IR-2026-0923 v1.0 Incident Report IR-2026-0923; policy:REG-SUM-001 v2026.1 Provincial Collection Rules Summary (REG-SUM-001) — synthetic summary; note:N-6529295; note:N-4500735,false
+BQ-003,9702,SELECT COUNT(DISTINCT golden_id) AS customers_with_broken_promise FROM promises WHERE status = 'BROKEN' AND promised_date >= CAST('2026-09-28' AS DATE) - INTERVAL '30' DAY LIMIT 100,false
+BQ-004,350.8,"SELECT ROUND(AVG(days_past_due), 1) AS avg_days_past_due FROM accounts WHERE days_past_due > 0 LIMIT 100",false
+BQ-005,"I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-006,"I can't answer that: it is not about Maple Bank collections data. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-007,9702,SELECT COUNT(DISTINCT golden_id) AS customers_with_broken_promise FROM promises WHERE status = 'BROKEN' AND promised_date >= CAST('2026-09-28' AS DATE) - INTERVAL '30' DAY LIMIT 100,false
+BQ-008,"I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-009,"Found 5 relevant masked record(s). [note:N-0022632] ""spoke to customer; cust says filed consumer proposal w/ trustee"" | [note:N-1502731] ""spoke to customer. cust says filed consumer proposal w/ trustee"" | [note:N-7512833] ""cust called in, cust says filed consumer proposal w/ trustee""",note:N-0022632; note:N-1502731; note:N-7512833; note:N-3025441; note:N-7513295,false
+BQ-010,"Found 5 relevant masked record(s). [policy:IR-2026-0923 v1.0 Incident Report IR-2026-0923] ""**When**: 23-24 September 2026. The predictive dialer was degraded; outbound call capacity fell about 60%.
+Expect fewer call attempts and right-party contacts on those days; this is not a change in customer behaviour."" | [policy:IR-2026-0914 v1.0 Incident Report IR-2026-0914] ""**When**: 14 September 2026, 09:10-15:40 ET. **Severity**: sev2.
+
+Payments made in the mobile app and online banking were not posted until the next day. About 1,900 card
+accounts were charged a late fee in error. Fees are being reversed in the next statement cycle.
+
+Expected data signature: late-fee disputes about 3x baseline between 15 and 22 September 2026."" | [note:N-0514209] ""spoke w/ cust promised 2026 by Aug 8 sent pmt link""",policy:IR-2026-0923 v1.0 Incident Report IR-2026-0923; policy:IR-2026-0914 v1.0 Incident Report IR-2026-0914; note:N-0514209; policy:PRC-COLL-012 v1.4 §6.2 Late-fee disputes after incidents; policy:REL-0926 v1.0 Release Note REL-0926,false
+BQ-011,"channel,contacts,answer_rate_pct
+call,1016842,58.3
+letter,356536,0.0
+email,322306,0.0
+sms,304592,2.0
+ivr,82643,28.5
+push,66368,1.9
+chat,15406,100.0","SELECT channel, COUNT(*) AS contacts, ROUND(100.0 * COUNT(*) FILTER(WHERE outcome IN ('answered', 'promise_made')) / COUNT(*), 1) AS answer_rate_pct FROM contacts GROUP BY 1 ORDER BY 2 DESC LIMIT 100",false
+BQ-012,"product_type,delinquent_accounts
+card,49983
+personal_loan,19668
+auto_loan,12541
+unsecured_loc,9287
+chequing,8396
+mortgage,3023
+student_loc,226","SELECT product_type, COUNT(*) AS delinquent_accounts FROM accounts WHERE days_past_due > 0 GROUP BY 1 ORDER BY 2 DESC LIMIT 100",false
+BQ-013,"I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-014,"I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: ""How many hardship customers have an account more than 30 days past due?""",,true
+BQ-015,"I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-016,"Found 5 relevant masked record(s). [note:N-0514209] ""spoke w/ cust promised 2026 by Aug 8 sent pmt link"" | [policy:PRC-COLL-012 v1.4 §6.2 Late-fee disputes after incidents] ""Fees charged because of a bank system incident are reversed without the customer having to prove payment.
+See IR-2026-0914."" | [note:N-3506867] ""client a appelé promesse 2026 $ 12 mai""","note:N-0514209; policy:PRC-COLL-012 v1.4 §6.2 Late-fee disputes after incidents; note:N-3506867; policy:POL-COLL-004-FR v4.2 Politique sur les difficultés financières et les clients vulnérables (POL-COLL-004, v4.2); note:N-6501346",false
+BQ-017,"product_type,delinquent_accounts
+card,49983
+personal_loan,19668
+auto_loan,12541
+unsecured_loc,9287
+chequing,8396
+mortgage,3023
+student_loc,226","SELECT product_type, COUNT(*) AS delinquent_accounts FROM accounts WHERE days_past_due > 0 GROUP BY 1 ORDER BY 2 DESC LIMIT 100",false
+BQ-018,"I can't answer that: it is not about Maple Bank collections data. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-019,"Found 5 relevant masked record(s). [policy:PRC-COLL-012 v1.4 §6.1 Raising a dispute] ""If a customer disputes a fee, a transaction, or says a payment was not applied, the agent opens a dispute and
+pauses payment requests for the disputed amount until it is resolved. Fraud claims are transferred to the
+fraud team."" | [policy:PRC-COLL-010 v2.1 §3.2 Confirming the promise] ""The agent must read back the amount and date before ending the call, and offer a payment link. A reminder is
+scheduled before the due date."" | [note:N-7014328] ""SPOKE TO CUSTOMER - SHIFTS CUT AT WORK SINCE MAY""",policy:PRC-COLL-012 v1.4 §6.1 Raising a dispute; policy:PRC-COLL-010 v2.1 §3.2 Confirming the promise; note:N-7014328; policy:POL-COLL-004-FR v4.2 §4.5 Clients vulnérables; note:N-7023561,false
+BQ-020,"Found 5 relevant masked record(s). [note:N-1016136] ""spoke to customer, advised we will sue and garnish wages next wk"" | [note:N-6011716] ""spoke to customer. advised we will sue and garnish wages next wk"" | [note:N-8035404] ""spoke to customer, advised we will sue and garnish wages next wk""",note:N-1016136; note:N-6011716; note:N-8035404; note:N-6011702; note:N-4516700,false
+BQ-021,"Found 5 relevant masked record(s). [note:N-0514209] ""spoke w/ cust promised 2026 by Aug 8 sent pmt link"" | [policy:PRC-COLL-012 v1.4 §6.2 Late-fee disputes after incidents] ""Fees charged because of a bank system incident are reversed without the customer having to prove payment.
+See IR-2026-0914."" | [note:N-3506867] ""client a appelé promesse 2026 $ 12 mai""","note:N-0514209; policy:PRC-COLL-012 v1.4 §6.2 Late-fee disputes after incidents; note:N-3506867; policy:POL-COLL-004-FR v4.2 Politique sur les difficultés financières et les clients vulnérables (POL-COLL-004, v4.2); note:N-6501346",false
+BQ-022,"Found 5 relevant masked record(s). [note:N-0514209] ""spoke w/ cust promised 2026 by Aug 8 sent pmt link"" | [policy:PRC-COLL-012 v1.4 §6.2 Late-fee disputes after incidents] ""Fees charged because of a bank system incident are reversed without the customer having to prove payment.
+See IR-2026-0914."" | [note:N-3506867] ""client a appelé promesse 2026 $ 12 mai""","note:N-0514209; policy:PRC-COLL-012 v1.4 §6.2 Late-fee disputes after incidents; note:N-3506867; policy:POL-COLL-004-FR v4.2 Politique sur les difficultés financières et les clients vulnérables (POL-COLL-004, v4.2); note:N-6501346",false
+BQ-023,"I can't answer that: personal data is masked in this system, so names and contact details cannot be returned. Try instead: ""How many customers consented to phone contact?""",,true
+BQ-024,"I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: ""How many hardship customers have an account more than 30 days past due?""",,true
+BQ-025,"Found 5 relevant masked record(s). [policy:POL-COLL-001 v3.0 §5.2 Contact frequency] ""A maximum of **3 outbound call attempts in any rolling 7 days** per case. Automated reminders count as attempts
+when they ask for payment."" | [policy:IR-2026-0923 v1.0 Incident Report IR-2026-0923] ""**When**: 23-24 September 2026. The predictive dialer was degraded; outbound call capacity fell about 60%.
+Expect fewer call attempts and right-party contacts on those days; this is not a change in customer behaviour."" | [policy:REG-SUM-001 v2026.1 Provincial Collection Rules Summary (REG-SUM-001) — synthetic summary] ""This hackathon summary simplifies provincial rules into one bank policy (see POL-COLL-001). Teams should
+treat POL-COLL-001 as the rule set to apply: local-time contact hours, a cap of 3 call attempts in 7 days,
+Sunday limits where Sunday contact is permitted, no contact on statutory holidays, French-language service
+for French-speaking customers, and the stay of proceedings during insolvency.""",policy:POL-COLL-001 v3.0 §5.2 Contact frequency; policy:IR-2026-0923 v1.0 Incident Report IR-2026-0923; policy:REG-SUM-001 v2026.1 Provincial Collection Rules Summary (REG-SUM-001) — synthetic summary; note:N-7505259; note:N-1536567,false
+BQ-026,"I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-027,"channel,contacts,answer_rate_pct
+call,1016842,58.3
+letter,356536,0.0
+email,322306,0.0
+sms,304592,2.0
+ivr,82643,28.5
+push,66368,1.9
+chat,15406,100.0","SELECT channel, COUNT(*) AS contacts, ROUND(100.0 * COUNT(*) FILTER(WHERE outcome IN ('answered', 'promise_made')) / COUNT(*), 1) AS answer_rate_pct FROM contacts GROUP BY 1 ORDER BY 2 DESC LIMIT 100",false
+BQ-028,55.9,"SELECT ROUND(100.0 * COUNT(*) FILTER(WHERE status = 'KEPT') / COUNT(*), 1) AS promise_kept_rate_pct FROM promises WHERE status IN ('KEPT', 'BROKEN') LIMIT 100",false
+BQ-029,"I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: ""How many hardship customers have an account more than 30 days past due?""",,true
+BQ-030,"I can't answer that: this system is read-only. Try instead: ""How many open cases are there by stage?""",,true
+BQ-031,"I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: ""How many hardship customers have an account more than 30 days past due?""",,true
+BQ-032,46218,SELECT COUNT(*) AS hardship_customers FROM customers WHERE hardship_flag LIMIT 100,false
+BQ-033,"Found 5 relevant masked record(s). [policy:PRC-COLL-010 v2.1 §3.1 Taking a promise] ""A promise to pay (PTP) records an amount and a date the customer commits to. The due date should be within
+**21 days** and, where possible, on or after the customer's next payday."" | [policy:PRC-COLL-010 v2.1 §3.3 Kept and broken promises] ""A promise is **kept** when the promised amount is received by the due date plus a grace period of
+**2 business days**, **partially kept** when some but not all of it is received, and **broken** when nothing is
+received. Promise-kept rate = kept / (kept + partially kept + broken), excluding open and cancelled promises."" | [policy:SCR-MID-STD-EN v2.0 Mid-stage Collections Call Script (SCR-MID-STD-EN, v2.0)] ""1. Greet, give your name and Maple Bank, and read the recording notice: ""This call may be recorded for quality
+   and training purposes.""
+2. Confirm you are speaking with the customer and verify identity (date of birth) **before** disclosing any debt.
+3. State the purpose and the past-due amount accurately.
+4. Listen. If hardship is mentioned, follow POL-COLL-004 §4.2 before asking for payment.
+5. Agree a promise to pay or an arrangement; read back the amount and date.
+6. Close respectfully and confirm next steps.""","policy:PRC-COLL-010 v2.1 §3.1 Taking a promise; policy:PRC-COLL-010 v2.1 §3.3 Kept and broken promises; policy:SCR-MID-STD-EN v2.0 Mid-stage Collections Call Script (SCR-MID-STD-EN, v2.0); policy:FAQ-COLL-001 v3.2 Collections Agent FAQ (FAQ-COLL-001); note:N-4032625",false
+BQ-034,55.9,"SELECT ROUND(100.0 * COUNT(*) FILTER(WHERE status = 'KEPT') / COUNT(*), 1) AS promise_kept_rate_pct FROM promises WHERE status IN ('KEPT', 'BROKEN') LIMIT 100",false
+BQ-035,"I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: ""Which product type has the highest total overdue amount?""",,true

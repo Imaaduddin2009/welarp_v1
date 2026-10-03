@@ -1,0 +1,282 @@
+{
+  "model": {
+    "roc_auc": 0.6007594195830557,
+    "brier_score": 0.25076937072249883,
+    "expected_calibration_error": 0.11366475127954735,
+    "observed_kept_rate": 0.3956717630548785,
+    "predicted_kept_rate": 0.4793603392210754,
+    "calibration_bins": [
+      {
+        "bin": 0,
+        "count": 51,
+        "mean_predicted": 0.08446775322065939,
+        "observed_kept_rate": 0.19607843137254902
+      },
+      {
+        "bin": 1,
+        "count": 747,
+        "mean_predicted": 0.16322378974967744,
+        "observed_kept_rate": 0.2784471218206158
+      },
+      {
+        "bin": 2,
+        "count": 2334,
+        "mean_predicted": 0.2535733745556605,
+        "observed_kept_rate": 0.30119965724078834
+      },
+      {
+        "bin": 3,
+        "count": 1990,
+        "mean_predicted": 0.34621914468135073,
+        "observed_kept_rate": 0.3155778894472362
+      },
+      {
+        "bin": 4,
+        "count": 1774,
+        "mean_predicted": 0.45305466292294966,
+        "observed_kept_rate": 0.3647125140924464
+      },
+      {
+        "bin": 5,
+        "count": 2549,
+        "mean_predicted": 0.5482805752278158,
+        "observed_kept_rate": 0.44291879168301296
+      },
+      {
+        "bin": 6,
+        "count": 2280,
+        "mean_predicted": 0.6489294507426678,
+        "observed_kept_rate": 0.4820175438596491
+      },
+      {
+        "bin": 7,
+        "count": 1298,
+        "mean_predicted": 0.7418733098520109,
+        "observed_kept_rate": 0.524653312788906
+      },
+      {
+        "bin": 8,
+        "count": 447,
+        "mean_predicted": 0.8396562688526646,
+        "observed_kept_rate": 0.48769574944071586
+      },
+      {
+        "bin": 9,
+        "count": 69,
+        "mean_predicted": 0.9258556215757766,
+        "observed_kept_rate": 0.4927536231884058
+      }
+    ]
+  },
+  "logistic_baseline": {
+    "roc_auc": 0.6128113876730186,
+    "brier_score": 0.2376826542603215,
+    "expected_calibration_error": 0.07586095035167192,
+    "observed_kept_rate": 0.3956717630548785,
+    "predicted_kept_rate": 0.45135533910143094,
+    "calibration_bins": [
+      {
+        "bin": 0,
+        "count": 9,
+        "mean_predicted": 0.08923515227889695,
+        "observed_kept_rate": 0.2222222222222222
+      },
+      {
+        "bin": 1,
+        "count": 567,
+        "mean_predicted": 0.17263606171873838,
+        "observed_kept_rate": 0.25396825396825395
+      },
+      {
+        "bin": 2,
+        "count": 2713,
+        "mean_predicted": 0.2542283454760262,
+        "observed_kept_rate": 0.2871360117950608
+      },
+      {
+        "bin": 3,
+        "count": 2003,
+        "mean_predicted": 0.34089586134155125,
+        "observed_kept_rate": 0.32451323015476785
+      },
+      {
+        "bin": 4,
+        "count": 1804,
+        "mean_predicted": 0.4591944524034115,
+        "observed_kept_rate": 0.3553215077605322
+      },
+      {
+        "bin": 5,
+        "count": 3775,
+        "mean_predicted": 0.5511175551843908,
+        "observed_kept_rate": 0.4580132450331126
+      },
+      {
+        "bin": 6,
+        "count": 2310,
+        "mean_predicted": 0.6355041890072357,
+        "observed_kept_rate": 0.5229437229437229
+      },
+      {
+        "bin": 7,
+        "count": 344,
+        "mean_predicted": 0.7301483025511422,
+        "observed_kept_rate": 0.561046511627907
+      },
+      {
+        "bin": 8,
+        "count": 14,
+        "mean_predicted": 0.831071824608277,
+        "observed_kept_rate": 0.7857142857142857
+      }
+    ]
+  },
+  "holdout_rows": 13539,
+  "train_rows": 8807,
+  "train_as_of_max": "2026-06-30",
+  "holdout_as_of_min": "2026-07-31",
+  "top_decile_observed_kept_rate": 0.5059084194977843,
+  "overall_observed_kept_rate": 0.3956717630548785,
+  "top_decile_is_ranking_yield_not_causal_uplift": true,
+  "fairness_audit": {
+    "available": true,
+    "restricted_data_used_for_audit_only": true,
+    "minimum_group_size": 50,
+    "groups": {
+      "gender": [
+        {
+          "group": "F",
+          "count": 6327,
+          "suppressed": false,
+          "observed_kept_rate": 0.39544807965860596,
+          "predicted_positive_rate": 0.477161371898214,
+          "true_positive_rate": 0.573541167066347,
+          "false_positive_rate": 0.41411764705882353
+        },
+        {
+          "group": "M",
+          "count": 6434,
+          "suppressed": false,
+          "observed_kept_rate": 0.39539944047248987,
+          "predicted_positive_rate": 0.500932545850171,
+          "true_positive_rate": 0.6010220125786163,
+          "false_positive_rate": 0.4354755784061697
+        },
+        {
+          "group": "U",
+          "count": 106,
+          "suppressed": false,
+          "observed_kept_rate": 0.44339622641509435,
+          "predicted_positive_rate": 0.4811320754716981,
+          "true_positive_rate": 0.6595744680851063,
+          "false_positive_rate": 0.3389830508474576
+        },
+        {
+          "group": "X",
+          "count": 130,
+          "suppressed": false,
+          "observed_kept_rate": 0.4076923076923077,
+          "predicted_positive_rate": 0.5307692307692308,
+          "true_positive_rate": 0.6792452830188679,
+          "false_positive_rate": 0.42857142857142855
+        },
+        {
+          "group": "nan",
+          "count": 542,
+          "suppressed": false,
+          "observed_kept_rate": 0.3892988929889299,
+          "predicted_positive_rate": 0.518450184501845,
+          "true_positive_rate": 0.6161137440758294,
+          "false_positive_rate": 0.4561933534743202
+        }
+      ],
+      "newcomer": [
+        {
+          "group": "false",
+          "count": 11730,
+          "suppressed": false,
+          "observed_kept_rate": 0.38900255754475704,
+          "predicted_positive_rate": 0.4824381926683717,
+          "true_positive_rate": 0.5785667324128863,
+          "false_positive_rate": 0.4212362215710897
+        },
+        {
+          "group": "true",
+          "count": 1392,
+          "suppressed": false,
+          "observed_kept_rate": 0.4511494252873563,
+          "predicted_positive_rate": 0.5510057471264368,
+          "true_positive_rate": 0.6719745222929936,
+          "false_positive_rate": 0.45157068062827227
+        },
+        {
+          "group": "nan",
+          "count": 417,
+          "suppressed": false,
+          "observed_kept_rate": 0.3980815347721823,
+          "predicted_positive_rate": 0.5203836930455635,
+          "true_positive_rate": 0.5963855421686747,
+          "false_positive_rate": 0.4701195219123506
+        }
+      ],
+      "accessibility": [
+        {
+          "group": "false",
+          "count": 12770,
+          "suppressed": false,
+          "observed_kept_rate": 0.3952231793265466,
+          "predicted_positive_rate": 0.48997650743931087,
+          "true_positive_rate": 0.5902516346344363,
+          "false_positive_rate": 0.424446458630066
+        },
+        {
+          "group": "true",
+          "count": 352,
+          "suppressed": false,
+          "observed_kept_rate": 0.4090909090909091,
+          "predicted_positive_rate": 0.48011363636363635,
+          "true_positive_rate": 0.5763888888888888,
+          "false_positive_rate": 0.41346153846153844
+        },
+        {
+          "group": "nan",
+          "count": 417,
+          "suppressed": false,
+          "observed_kept_rate": 0.3980815347721823,
+          "predicted_positive_rate": 0.5203836930455635,
+          "true_positive_rate": 0.5963855421686747,
+          "false_positive_rate": 0.4701195219123506
+        }
+      ],
+      "vulnerability": [
+        {
+          "group": "false",
+          "count": 10942,
+          "suppressed": false,
+          "observed_kept_rate": 0.4077865106927436,
+          "predicted_positive_rate": 0.5222080058490222,
+          "true_positive_rate": 0.6239354549529359,
+          "false_positive_rate": 0.4521604938271605
+        },
+        {
+          "group": "true",
+          "count": 2180,
+          "suppressed": false,
+          "observed_kept_rate": 0.33440366972477065,
+          "predicted_positive_rate": 0.326605504587156,
+          "true_positive_rate": 0.3813443072702332,
+          "false_positive_rate": 0.2991040661612681
+        },
+        {
+          "group": "nan",
+          "count": 417,
+          "suppressed": false,
+          "observed_kept_rate": 0.3980815347721823,
+          "predicted_positive_rate": 0.5203836930455635,
+          "true_positive_rate": 0.5963855421686747,
+          "false_positive_rate": 0.4701195219123506
+        }
+      ]
+    }
+  }
+}

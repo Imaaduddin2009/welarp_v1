@@ -5,13 +5,15 @@ from pathlib import Path
 from sqlglot import exp
 
 CFG = yaml.safe_load(open(Path(__file__).resolve().parents[1] / "config" / "semantic.yaml"))
-L2DB, AUDIT = "out/l2.duckdb", "out/audit_log.jsonl"
+L2DB = os.getenv("C360_L2_DB", "out/l2.duckdb")
+AUDIT = os.getenv("C360_AUDIT_LOG", "out/audit_log.jsonl")
 SNAP = CFG["snapshot_date"]; ALLOWED = set(CFG["tables"]); FORBID = set(CFG["forbidden_columns"])
 MAX_ROWS = 1000
+LEAD_MIN_CELL_SIZE = 10
 
 # ------------------------------------------------------------------ 1. scope check (rules; deterministic and auditable)
 RULES = [
-  ("protected", r"\b(gender|male|female|marital|citizen\w*|immigra\w*|newcomer|household|dependants?|accessib\w*|disab\w*|vulnerab\w*|accent|race|racial|ethnic\w*|religio\w*|nationality|sexual\w*)\b",
+  ("protected", r"\b(gender|male|female|marital|citizen\w*|immigra\w*|newcomer|household|dependants?|accessib\w*|disab\w*|vulnerab\w*|accent\w*|race|racial|ethnic\w*|religio\w*|nationality|sexual\w*|postal areas?|postal codes?|postcodes?|zip codes?|FSAs?|area codes?)\b",
    "it uses or tries to infer a protected attribute, which must not be used in collections decisions",
    "How many hardship customers have an account more than 30 days past due?"),
   ("pii", r"\b(phone numbers?|email addresses?|home address(es)?|date of birth|dob|sin|national id|full names?|names? of)\b",
@@ -34,6 +36,12 @@ def scope_check(question, user):
 # ------------------------------------------------------------------ 2. route
 def route(question):
     ql = question.lower()
+    if re.search(
+        r"\b(policy|procedure|regulation|regulatory|permitted|allowed|must|should|"
+        r"can we|can an agent|how many .*attempts?|consent required|grace period)\b",
+        ql,
+    ):
+        return "text"
     aggregate = re.match(r"\s*(how many|count|total|average|avg|what (is|are) the (total|average|number))", ql)
     if re.search(r"\b(said|say|saying|told|mention\w*|reason|transcripts?|talk\w* about|complain\w*|explain\w*)\b", ql) and not aggregate: return "text"
     return "sql"
@@ -42,8 +50,8 @@ def route(question):
 def schema_prompt():
     t = "\n".join(f"- {n}: {v['description']}\n" + "\n".join(f"    {c}: {d}" for c, d in v["columns"].items()) for n, v in CFG["tables"].items())
     return (f"You write ONE read-only DuckDB SELECT for a collections analytics tool. Use ONLY these tables/columns:\n{t}\n\nJoins: {CFG['joins']}\n"
-            f"Business terms: {CFG['terms']}\nToday is {SNAPSHOT}. Never use the wall clock; use DATE '{SNAP}'.\n"
-            "Output ONLY the SQL, no markdown. If the question cannot be answered from these tables, output exactly: REFUSE: <short reason>.").replace("{SNAPSHOT}", SNAP).replace("SNAPSHOT", SNAP)
+            f"Business terms: {CFG['terms']}\nToday is {SNAP}. Never use the wall clock; use DATE '{SNAP}'.\n"
+            "Output ONLY the SQL, no markdown. If the question cannot be answered from these tables, output exactly: REFUSE: <short reason>.")
 def llm_sql(question, error=None):
     import anthropic
     msgs = [{"role": "user", "content": question + (f"\nYour previous SQL failed with: {error}. Fix it." if error else "")}]
@@ -107,8 +115,53 @@ def guard(sql, user):
         if t.db or t.catalog or t.name not in ALLOWED: raise Blocked(f"table '{t.name}' is not an approved table")
     for c in tree.find_all(exp.Column):
         if c.name.lower() in FORBID: raise Blocked(f"column '{c.name}' is protected or personal data")
-    if user.get("role") == "lead" and not (tree.find(exp.AggFunc) or tree.args.get("group")):
-        raise Blocked("team leads can only see aggregated summaries, not row-level data")
+    if user.get("role") == "lead":
+        group = tree.args.get("group")
+        group_sql = set()
+        if group:
+            for expression in group.expressions:
+                if isinstance(expression, exp.Literal) and expression.is_int:
+                    index = int(expression.this) - 1
+                    if 0 <= index < len(tree.expressions):
+                        expression = tree.expressions[index]
+                        expression = expression.this if isinstance(expression, exp.Alias) else expression
+                group_sql.add(expression.sql(dialect="duckdb").lower())
+                if any(
+                    column.name.lower() in {
+                        "golden_id", "customer_id", "account_id", "case_id",
+                        "contact_id", "ptp_id", "note_id", "transcript_id",
+                        "source_id", "crm_customer_id",
+                    }
+                    for column in expression.find_all(exp.Column)
+                ):
+                    raise Blocked("team leads cannot group results by customer or record identifiers")
+        for projection in tree.expressions:
+            expression = projection.this if isinstance(projection, exp.Alias) else projection
+            if expression.find(exp.AggFunc):
+                continue
+            if not group_sql or expression.sql(dialect="duckdb").lower() not in group_sql:
+                raise Blocked("team leads can only see grouped aggregate summaries")
+        if not tree.find(exp.AggFunc):
+            raise Blocked("team leads can only see aggregate summaries")
+        if group_sql:
+            source = next(
+                (table for table in tree.find_all(exp.Table)
+                 if table.name not in ctes and table.name != "pipeline_run"),
+                None,
+            )
+            if source is None:
+                raise Blocked("grouped summaries require a customer-linked source table")
+            customer_id = exp.Column(
+                this=exp.to_identifier("golden_id"),
+                table=exp.to_identifier(source.alias_or_name),
+            )
+            cell_size = exp.Count(this=exp.Distinct(expressions=[customer_id]))
+            minimum_cell = exp.GTE(this=cell_size, expression=exp.Literal.number(LEAD_MIN_CELL_SIZE))
+            having = tree.args.get("having")
+            if having:
+                having.set("this", exp.and_(having.this, minimum_cell))
+            else:
+                tree.set("having", exp.Having(this=minimum_cell))
     lim = tree.args.get("limit")
     if lim is None: tree = tree.limit(100)
     else:
@@ -139,16 +192,47 @@ CUES = r"lost my job|laid off|job loss|hours cut|medical|hospital|illness|strugg
 class NoteSearch:
     def __init__(self):
         from sklearn.feature_extraction.text import TfidfVectorizer
-        con = duckdb.connect(L2DB, read_only=True); self.df = con.execute("SELECT note_id, golden_id, note_text_masked AS t FROM notes").fetchdf(); con.close()
-        self.vec = TfidfVectorizer(ngram_range=(1, 2), stop_words="english"); self.X = self.vec.fit_transform(self.df.t)
+        con = duckdb.connect(L2DB, read_only=True)
+        self.df = con.execute("""
+            SELECT DISTINCT ON (golden_id, text) source_type, source_id, golden_id,
+                   source_citation, text AS t
+            FROM (
+              SELECT 'note' AS source_type, note_id AS source_id, golden_id,
+                     note_id AS source_citation,
+                     note_text_masked AS text FROM notes
+              UNION ALL
+              SELECT 'transcript' AS source_type, transcript_id AS source_id, golden_id,
+                     transcript_id AS source_citation,
+                     transcript_text_masked AS text FROM transcripts
+              UNION ALL
+              SELECT 'policy' AS source_type, chunk_id AS source_id, NULL AS golden_id,
+                     doc_id || ' v' || version || ' ' || section AS source_citation,
+                     content AS text FROM policy_chunks
+            )
+            WHERE nullif(trim(text), '') IS NOT NULL
+            ORDER BY golden_id, text, source_type, source_id
+        """).fetchdf()
+        con.close()
+        self.vec = TfidfVectorizer(ngram_range=(1, 2), stop_words="english", max_features=50000, min_df=2)
+        self.X = self.vec.fit_transform(self.df.t)
     def search(self, q, k=5, min_sim=0.08, user=None):
         sims = (self.X @ self.vec.transform([q]).T).toarray().ravel(); order = sims.argsort()[::-1]
         df = self.df
         if user and user.get("role") == "agent":
             con = duckdb.connect(L2DB, read_only=True)
             mine = set(con.execute(f"SELECT DISTINCT golden_id FROM cases WHERE agent_id = '{re.sub(r'[^A-Za-z0-9_]', '', user['agent_id'])}'").fetchdf().golden_id); con.close()
-            order = [i for i in order if df.golden_id.iloc[i] in mine]
-        return [dict(note_id=df.note_id.iloc[i], golden_id=df.golden_id.iloc[i], text=df.t.iloc[i], sim=round(float(sims[i]), 3)) for i in order[:k] if sims[i] >= min_sim]
+            order = [i for i in order if df.source_type.iloc[i] == "policy" or df.golden_id.iloc[i] in mine]
+        return [
+            dict(
+                source_type=df.source_type.iloc[i],
+                source_id=df.source_id.iloc[i],
+                source_citation=df.source_citation.iloc[i],
+                golden_id=df.golden_id.iloc[i],
+                text=df.t.iloc[i],
+                sim=round(float(sims[i]), 3),
+            )
+            for i in order[:k] if sims[i] >= min_sim
+        ]
 
 # ------------------------------------------------------------------ orchestrator
 class QA:
@@ -159,6 +243,7 @@ class QA:
         c = duckdb.connect(L2DB, read_only=True); r = c.execute("SELECT run_ts::VARCHAR, data_snapshot_date::VARCHAR FROM pipeline_run").fetchone(); c.close()
         return f"data as of {r[1]}; pipeline refreshed {str(r[0])[:19]}"
     def _log(self, out):
+        Path(AUDIT).parent.mkdir(parents=True, exist_ok=True)
         with open(AUDIT, "a") as f: f.write(json.dumps(dict(ts=time.time(), user=self.user, **{k: out[k] for k in ("question", "route", "sql_or_sources", "refused", "reason")}), default=str) + "\n")
     def _refuse(self, q, reason, suggestion=None, rt="none"):
         out = dict(question=q, answer=f"I can't answer that: {reason}." + (f" Try instead: \"{suggestion}\"" if suggestion else ""), sql_or_sources="", refused=True, reason=reason, route=rt, freshness=self._fresh(), table=None)
@@ -170,10 +255,16 @@ class QA:
         if rt == "text":
             self._search = self._search or NoteSearch(); hits = self._search.search(q, user=self.user)
             if not hits: return self._refuse(q, "no relevant notes were found, so I can't answer this reliably", None, "text")
-            alert = any(re.search(CUES, h["text"], re.I) for h in hits)
-            ans = f"Found {len(hits)} relevant note(s). " + " | ".join(f"[{h['note_id']}] \"{h['text']}\"" for h in hits[:3]) + \
-                  ("  ⚠ Possible hardship cue in these notes: raised for a person to confirm (not auto-flagged)." if alert else "")
-            out = dict(question=q, answer=ans, sql_or_sources="; ".join(f"note:{h['note_id']}" for h in hits), refused=False, reason="", route="text", freshness=self._fresh(), table=pd.DataFrame(hits))
+            alert = any(
+                h["source_type"] != "policy" and re.search(CUES, h["text"], re.I)
+                for h in hits
+            )
+            ans = f"Found {len(hits)} relevant masked record(s). " + " | ".join(
+                f"[{h['source_type']}:{h['source_citation']}] \"{h['text']}\"" for h in hits[:3]
+            ) + (" Possible hardship cue: refer for human review; no automatic hardship status was set." if alert else "")
+            out = dict(question=q, answer=ans, sql_or_sources="; ".join(
+                f"{h['source_type']}:{h['source_citation']}" for h in hits
+            ), refused=False, reason="", route="text", freshness=self._fresh(), table=pd.DataFrame(hits))
             self._log(out); return out
         sql = None; src = "template"
         if self.use_llm:
@@ -195,7 +286,7 @@ class QA:
             else: return self._refuse(q, f"the query failed ({type(e).__name__})", None, "sql")
         if df.shape == (1, 1): ans = f"{df.columns[0].replace('_', ' ')}: {df.iat[0, 0]}"
         elif df.empty: ans = "No matching records."
-        else: ans = f"{len(df)} row(s). " + df.head(8).to_csv(index=False).strip().replace("\n", " / ")
+        else: ans = f"{len(df)} result row(s); see the structured results table."
         out = dict(question=q, answer=ans, sql_or_sources=safe, refused=False, reason="", route="sql", freshness=self._fresh(), table=df, via=src)
         self._log(out); return out
 
@@ -204,6 +295,11 @@ def run_benchmark(questions_csv, out_csv, id_col="question_id", q_col="question"
     qa = QA(user); df = pd.read_csv(questions_csv); rows = []
     for r in df.itertuples():
         o = qa.ask(getattr(r, q_col))
-        a = o["answer"] if o["refused"] else (str(o["table"].iat[0, 0]) if o["table"] is not None and o["table"].shape == (1, 1) and o["route"] == "sql" else o["answer"])
+        if o["refused"] or o["route"] != "sql" or o["table"] is None:
+            a = o["answer"]
+        elif o["table"].shape == (1, 1):
+            a = str(o["table"].iat[0, 0])
+        else:
+            a = o["table"].to_csv(index=False).strip()
         rows.append(dict(question_id=getattr(r, id_col), answer=a, sql_or_sources=o["sql_or_sources"], refused=str(o["refused"]).lower()))
     pd.DataFrame(rows).to_csv(out_csv, index=False); return pd.DataFrame(rows)

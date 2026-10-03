@@ -52,11 +52,21 @@ def feature_sql(as_of, golden_ids=None):
     """THE one definition. as_of = the 'today' we pretend it is; nothing on/after that date is ever used."""
     gf = ""
     gf_c = ""
+    source_con = duckdb.connect(SRC, read_only=True)
+    has_transcripts = source_con.execute(
+        "SELECT count(*) FROM information_schema.tables WHERE table_name='transcripts'"
+    ).fetchone()[0] > 0
+    source_con.close()
     if golden_ids:
         ids = ",".join("'" + re.sub(r"[^A-Za-z0-9]", "", g) + "'" for g in golden_ids)
         gf = f"AND golden_id IN ({ids})"
         gf_c = f"AND c.golden_id IN ({ids})"
     txt = ",\n    ".join(f"coalesce(bool_or(regexp_matches(n.note_text_masked, '{rx.replace(chr(39), chr(39)*2)}', 'i')), false) AS {k}" for k, rx in TEXT_RULES.items())
+    transcript_text = (
+        f"\n  UNION ALL\n  SELECT t.golden_id, t.transcript_text_masked AS note_text_masked\n"
+        f"  FROM transcripts t WHERE t.call_start_ts::DATE < DATE '{as_of}' {gf}"
+        if has_transcripts else ""
+    )
     return f"""
 WITH base AS (  -- one row per customer who had a case by as_of; main case = most recently opened
   SELECT golden_id, case_stage,
@@ -69,7 +79,7 @@ WITH base AS (  -- one row per customer who had a case by as_of; main case = mos
 acc AS (
   SELECT golden_id, max(days_past_due) AS max_days_past_due, round(sum(overdue_amount), 2) AS total_overdue_amount,
          count(*) FILTER (WHERE days_past_due > 0) AS n_products_overdue, round(sum(balance), 2) AS total_balance
-  FROM (SELECT *, row_number() OVER (PARTITION BY account_id ORDER BY snapshot_date DESC) rn FROM accounts WHERE snapshot_date <= DATE '{as_of}' {gf})
+  FROM (SELECT *, row_number() OVER (PARTITION BY account_id, golden_id ORDER BY snapshot_date DESC) rn FROM accounts WHERE snapshot_date <= DATE '{as_of}' {gf})
   WHERE rn = 1 GROUP BY 1),
 pr AS (
   SELECT golden_id, count(*) AS promises_made_90d,
@@ -80,7 +90,7 @@ pr AS (
   FROM promises WHERE promised_date < DATE '{as_of}' AND promised_date >= DATE '{as_of}' - INTERVAL 90 DAY {gf} GROUP BY 1),
 ct AS (
   SELECT golden_id, count(*) FILTER (WHERE contact_date >= DATE '{as_of}' - INTERVAL 14 DAY) AS contact_attempts_14d,
-         arg_max(outcome, contact_date) AS last_contact_outcome
+         arg_max(nullif(outcome, 'na'), contact_date) AS last_contact_outcome
   FROM contacts WHERE contact_date < DATE '{as_of}' {gf} GROUP BY 1),
 ch AS (
   SELECT golden_id, channel AS best_channel FROM (
@@ -100,8 +110,13 @@ br AS (
   ) latest USING (golden_id, score_date)
   GROUP BY s.golden_id),
 tx AS (
-  SELECT c.golden_id, {txt}
-  FROM contacts c JOIN notes n ON n.note_id = c.note_id WHERE c.contact_date < DATE '{as_of}' {gf_c} GROUP BY 1)
+  SELECT n.golden_id, {txt}
+  FROM (
+    SELECT c.golden_id, n.note_text_masked FROM contacts c
+    JOIN notes n ON n.note_id = c.note_id
+    WHERE c.contact_date < DATE '{as_of}' {gf_c}
+    {transcript_text}
+  ) n GROUP BY 1)
 SELECT b.golden_id, DATE '{as_of}' AS as_of,
   a.max_days_past_due, a.total_overdue_amount, a.n_products_overdue, a.total_balance,
   coalesce(p.promises_made_90d, 0) AS promises_made_90d, coalesce(p.promises_broken_90d, 0) AS promises_broken_90d,
@@ -136,6 +151,18 @@ def training_set(as_of, horizon=30):
     X = compute(as_of); con = duckdb.connect(SRC, read_only=True)
     y = con.execute(label_sql(as_of, horizon)).fetchdf(); con.close()
     return X.merge(y, on="golden_id", how="inner")
+
+
+def temporal_training_sets(as_of_dates, horizon=30):
+    """Build an auditable panel of point-in-time feature/label snapshots."""
+    dates = sorted(set(as_of_dates))
+    if not dates:
+        raise ValueError("At least one as_of date is required")
+    return pd.concat(
+        [training_set(as_of, horizon) for as_of in dates],
+        ignore_index=True,
+    )
+
 
 def online(golden_id, as_of=SNAPSHOT_DATE):
     """'Score one customer right now' - literally the same query, filtered to one customer."""
@@ -213,6 +240,40 @@ def test_point_in_time(as_of):
     ok9 = same(X.consent_phone, consent.consent_phone.reindex(X.index).where(consent_is_known.reindex(X.index)))
     assert all((ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9)), "point-in-time mismatch"
     return f"as_of {as_of}: promises, contacts, hardship, bureau and consent features match prior-date recomputations"
+
+
+def test_text_point_in_time(as_of):
+    """Compare every text feature with masked text records available strictly before as_of."""
+    con = duckdb.connect(SRC, read_only=True)
+    has_transcripts = con.execute(
+        "SELECT count(*) FROM information_schema.tables WHERE table_name='transcripts'"
+    ).fetchone()[0] > 0
+    transcript_sql = (
+        f"UNION ALL SELECT golden_id, transcript_text_masked AS text FROM transcripts "
+        f"WHERE call_start_ts::DATE < DATE '{as_of}'"
+        if has_transcripts else ""
+    )
+    rules_sql = ", ".join(
+        f"coalesce(bool_or(regexp_matches(text, '{pattern.replace(chr(39), chr(39) * 2)}', 'i')), false) AS {name}"
+        for name, pattern in TEXT_RULES.items()
+    )
+    expected = con.execute(f"""
+        SELECT golden_id, {rules_sql}
+        FROM (
+          SELECT c.golden_id, n.note_text_masked AS text
+          FROM contacts c JOIN notes n ON n.note_id=c.note_id
+          WHERE c.contact_date < DATE '{as_of}'
+          {transcript_sql}
+        ) docs GROUP BY golden_id
+    """).fetchdf().set_index("golden_id")
+    con.close()
+    actual = compute(as_of).set_index("golden_id")
+    for name in TEXT_RULES:
+        wanted = expected[name].reindex(actual.index).fillna(False).astype(bool)
+        observed = actual[name].fillna(False).astype(bool)
+        assert observed.equals(wanted), f"text feature {name} used a future or mismatched source at {as_of}"
+    return f"as_of {as_of}: all text flags match masked notes/transcripts before that date"
+
 
 if __name__ == "__main__":
     df = publish(); print("published", df.shape, "->", STORE)

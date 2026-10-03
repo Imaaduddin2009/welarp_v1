@@ -1,0 +1,620 @@
+{
+  "minimum_pass_rate": 0.99,
+  "checks": [
+    {
+      "id": "unique_golden_id",
+      "description": "golden_id unique",
+      "checked": 1261197,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "crosswalk_one_golden",
+      "description": "one crosswalk row per source key",
+      "checked": 3813985,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "account_linked",
+      "description": "accounts link to a customer",
+      "checked": 12569692,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "valid_dpd",
+      "description": "days past due is nonnegative",
+      "checked": 12569692,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "valid_account_values",
+      "description": "overdue estimates are nonnegative and do not exceed nonnegative balances; negative balances represent credits",
+      "checked": 12569692,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "negative_balance_overdue",
+      "description": "credit/net-negative balances do not generate overdue estimates",
+      "checked": 12569692,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "valid_case_dates",
+      "description": "case open dates parse",
+      "checked": 367229,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "notes_linked",
+      "description": "notes map to a customer",
+      "checked": 760594,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "transcripts_linked",
+      "description": "transcripts map to a customer",
+      "checked": 25000,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "masked_note_contact_pii",
+      "description": "notes have email and phone patterns masked",
+      "checked": 760594,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "masked_note_customer_names",
+      "description": "notes have the customer's first and last names masked",
+      "checked": 760594,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "masked_transcript_contact_pii",
+      "description": "transcripts have email and phone patterns masked",
+      "checked": 25000,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "crosswalk_confidence_range",
+      "description": "confidence in [0,1]",
+      "checked": 3813985,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "masked_transcript_customer_names",
+      "description": "Transcripts have the customer's first and last names masked",
+      "checked": 25000,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_customers",
+      "description": "Source customers row count agrees with release schema",
+      "checked": 1020000,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_card_accounts",
+      "description": "Source card_accounts row count agrees with release schema",
+      "checked": 660000,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_loan_accounts",
+      "description": "Source loan_accounts row count agrees with release schema",
+      "checked": 404500,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_deposit_accounts",
+      "description": "Source deposit_accounts row count agrees with release schema",
+      "checked": 780000,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_collections_cases",
+      "description": "Source collections_cases row count agrees with release schema",
+      "checked": 367229,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_contact_history",
+      "description": "Source contact_history row count agrees with release schema",
+      "checked": 2688337,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_promises_to_pay",
+      "description": "Source promises_to_pay row count agrees with release schema",
+      "checked": 238815,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_agent_notes",
+      "description": "Source agent_notes row count agrees with release schema",
+      "checked": 760594,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_call_transcripts",
+      "description": "Source call_transcripts row count agrees with release schema",
+      "checked": 25000,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_voice_samples",
+      "description": "Source voice_samples row count agrees with release schema",
+      "checked": 2000,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_external",
+      "description": "Source external row count agrees with release schema",
+      "checked": 1000000,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_loan_instalments",
+      "description": "Source loan_instalments row count agrees with release schema",
+      "checked": 14832472,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_transactions",
+      "description": "Source transactions row count agrees with release schema",
+      "checked": 12401924,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_card_statements",
+      "description": "Source card_statements row count agrees with release schema",
+      "checked": 7531283,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_account_monthly_snapshot",
+      "description": "Source account_monthly_snapshot row count agrees with release schema",
+      "checked": 12569692,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_bureau_history",
+      "description": "Source bureau_history row count agrees with release schema",
+      "checked": 4679562,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_salary_credit_history",
+      "description": "Source salary_credit_history row count agrees with release schema",
+      "checked": 6000000,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_model_scores",
+      "description": "Source model_scores row count agrees with release schema",
+      "checked": 1718841,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_offers",
+      "description": "Source offers row count agrees with release schema",
+      "checked": 40767,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_metric_definitions",
+      "description": "Source metric_definitions row count agrees with release schema",
+      "checked": 15,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_benchmark_questions",
+      "description": "Source benchmark_questions row count agrees with release schema",
+      "checked": 35,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_reference_documents",
+      "description": "Source reference_documents row count agrees with release schema",
+      "checked": 19,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_hardship_programs",
+      "description": "Source hardship_programs row count agrees with release schema",
+      "checked": 18,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_qa_checklist",
+      "description": "Source qa_checklist row count agrees with release schema",
+      "checked": 10,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_agents",
+      "description": "Source agents row count agrees with release schema",
+      "checked": 1000,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_case_assignment_history",
+      "description": "Source case_assignment_history row count agrees with release schema",
+      "checked": 423830,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_agent_shifts",
+      "description": "Source agent_shifts row count agrees with release schema",
+      "checked": 15317,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_channel_capacity",
+      "description": "Source channel_capacity row count agrees with release schema",
+      "checked": 287,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_ops_events",
+      "description": "Source ops_events row count agrees with release schema",
+      "checked": 6,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_geo_reference",
+      "description": "Source geo_reference row count agrees with release schema",
+      "checked": 656,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "source_row_count_code_lookups",
+      "description": "Source code_lookups row count agrees with release schema",
+      "checked": 113,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "curated_coverage_contact_history",
+      "description": "contact_history.csv: all eligible rows are curated and linked; expected exclusions are reported separately",
+      "checked": 2164693,
+      "failed": 0,
+      "excluded": 523644,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "curated_coverage_agent_notes",
+      "description": "agent_notes.csv: all eligible rows are curated and linked; expected exclusions are reported separately",
+      "checked": 760594,
+      "failed": 0,
+      "excluded": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "curated_coverage_collections_cases",
+      "description": "collections_cases.csv: all eligible rows are curated and linked; expected exclusions are reported separately",
+      "checked": 367229,
+      "failed": 0,
+      "excluded": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "curated_coverage_promises_to_pay",
+      "description": "promises_to_pay.csv: all eligible rows are curated and linked; expected exclusions are reported separately",
+      "checked": 238815,
+      "failed": 0,
+      "excluded": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "account_snapshot_dates_parsed",
+      "description": "All account snapshot month-end dates parse using supported release formats",
+      "checked": 12569692,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "account_snapshot_linked",
+      "description": "All valid-date account snapshot rows link through a CRM crosswalk key",
+      "checked": 12569692,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    {
+      "id": "l2_no_sensitive_columns",
+      "description": "Masked Layer 2 contains no direct PII, national-ID hashes, or protected attributes",
+      "checked": 66,
+      "failed": 0,
+      "leaked_columns": [],
+      "pass_rate": 1.0,
+      "passed": true
+    }
+  ],
+  "source_row_counts": [
+    {
+      "table": "customers",
+      "expected": 1020000,
+      "actual": 1020000,
+      "matches": true
+    },
+    {
+      "table": "card_accounts",
+      "expected": 660000,
+      "actual": 660000,
+      "matches": true
+    },
+    {
+      "table": "loan_accounts",
+      "expected": 404500,
+      "actual": 404500,
+      "matches": true
+    },
+    {
+      "table": "deposit_accounts",
+      "expected": 780000,
+      "actual": 780000,
+      "matches": true
+    },
+    {
+      "table": "collections_cases",
+      "expected": 367229,
+      "actual": 367229,
+      "matches": true
+    },
+    {
+      "table": "contact_history",
+      "expected": 2688337,
+      "actual": 2688337,
+      "matches": true
+    },
+    {
+      "table": "promises_to_pay",
+      "expected": 238815,
+      "actual": 238815,
+      "matches": true
+    },
+    {
+      "table": "agent_notes",
+      "expected": 760594,
+      "actual": 760594,
+      "matches": true
+    },
+    {
+      "table": "call_transcripts",
+      "expected": 25000,
+      "actual": 25000,
+      "matches": true
+    },
+    {
+      "table": "voice_samples",
+      "expected": 2000,
+      "actual": 2000,
+      "matches": true
+    },
+    {
+      "table": "external",
+      "expected": 1000000,
+      "actual": 1000000,
+      "matches": true
+    },
+    {
+      "table": "loan_instalments",
+      "expected": 14832472,
+      "actual": 14832472,
+      "matches": true
+    },
+    {
+      "table": "transactions",
+      "expected": 12401924,
+      "actual": 12401924,
+      "matches": true
+    },
+    {
+      "table": "card_statements",
+      "expected": 7531283,
+      "actual": 7531283,
+      "matches": true
+    },
+    {
+      "table": "account_monthly_snapshot",
+      "expected": 12569692,
+      "actual": 12569692,
+      "matches": true
+    },
+    {
+      "table": "bureau_history",
+      "expected": 4679562,
+      "actual": 4679562,
+      "matches": true
+    },
+    {
+      "table": "salary_credit_history",
+      "expected": 6000000,
+      "actual": 6000000,
+      "matches": true
+    },
+    {
+      "table": "model_scores",
+      "expected": 1718841,
+      "actual": 1718841,
+      "matches": true
+    },
+    {
+      "table": "offers",
+      "expected": 40767,
+      "actual": 40767,
+      "matches": true
+    },
+    {
+      "table": "metric_definitions",
+      "expected": 15,
+      "actual": 15,
+      "matches": true
+    },
+    {
+      "table": "benchmark_questions",
+      "expected": 35,
+      "actual": 35,
+      "matches": true
+    },
+    {
+      "table": "reference_documents",
+      "expected": 19,
+      "actual": 19,
+      "matches": true
+    },
+    {
+      "table": "hardship_programs",
+      "expected": 18,
+      "actual": 18,
+      "matches": true
+    },
+    {
+      "table": "qa_checklist",
+      "expected": 10,
+      "actual": 10,
+      "matches": true
+    },
+    {
+      "table": "agents",
+      "expected": 1000,
+      "actual": 1000,
+      "matches": true
+    },
+    {
+      "table": "case_assignment_history",
+      "expected": 423830,
+      "actual": 423830,
+      "matches": true
+    },
+    {
+      "table": "agent_shifts",
+      "expected": 15317,
+      "actual": 15317,
+      "matches": true
+    },
+    {
+      "table": "channel_capacity",
+      "expected": 287,
+      "actual": 287,
+      "matches": true
+    },
+    {
+      "table": "ops_events",
+      "expected": 6,
+      "actual": 6,
+      "matches": true
+    },
+    {
+      "table": "geo_reference",
+      "expected": 656,
+      "actual": 656,
+      "matches": true
+    },
+    {
+      "table": "code_lookups",
+      "expected": 113,
+      "actual": 113,
+      "matches": true
+    }
+  ],
+  "manifest_size_reconciliation": {
+    "checked": 26153,
+    "passed": 26153,
+    "missing_or_size_mismatch": [],
+    "sha256_recomputed": false
+  }
+}

@@ -1,40 +1,53 @@
-# We Thy Larp - Collections C360 (Layers 1 + 2)
+# Collections C360
+
+Collections C360 is a local decision-support demo built on the complete Maple release under `data/data/`. It preserves the small mock-data demo, but the main path now loads the full release through Layer 1, publishes a physically separate masked Layer 2 database, builds point-in-time Layer 3 features, and evaluates an advisory Layer 4 model.
+
+## Setup
+
+Use Python 3.12 or newer:
+
+```powershell
+python -m pip install -r requirements.txt
+```
 
 ## Run
-    pip install duckdb sqlglot scikit-learn pyyaml scipy pandas pyarrow faker
-    python run_demo.py            # mock data -> Layer 1 -> Layer 2 demo (about 5 s)
-    python run_layer3_demo.py     # full Maple release -> Layer 3 feature store
-    # optional: real LLM for NL-to-SQL (one cheap call per question; guard still applies)
-    export ANTHROPIC_API_KEY=...  # model defaults to claude-haiku-4-5-20251001, override with WTL_MODEL
 
-## Switch to the real Maple data
-1. hf download nuxsh/maple-collections-hackathon --repo-type dataset --local-dir maple_data ; cd maple_data && unzip maple_collections_release.zip
-2. Read maple_collections_release/README.md + DATA_DICTIONARY.xlsx.
-3. Edit ONLY config/schema_map.py (RAW_DIR + column names per source) and the table/column lists in config/semantic.yaml.
-4. python src/layer1.py   (then ask questions with src/layer2.py)
-Known gaps for real data: files are CSV/Parquet (switch read_csv to read_parquet for the big tables), date formats beyond the 4 handled
-in silver(), dd/mm vs mm/dd ambiguity, 1M-row blocking (add a block on phone/dob-year if pair counts explode), notes-search needs FAISS.
+```powershell
+python run_demo.py                         # fast mock-data Layer 1 + Layer 2 demo
+python run_layer3_demo.py                   # full Maple Layer 1 -> masked L2 -> L3
+python run_layer4.py                        # temporal outcome model and fairness report
+python scripts/run_benchmark.py             # 35 organiser questions; four-column CSV
+python scripts/score_benchmark.py           # score the dev-answer subset
+python -m streamlit run app.py              # agent / analyst / lead / supervisor UI
+python run_all.py                           # tests, full pipeline, model, benchmark, scoring
+```
 
-## Layers
-- Layer 1 (src/layer1.py): bronze (raw, all_varchar, load time + file) -> silver (names/dates/phones/postals standardised, invalid values quarantined with raw kept)
-  -> tiered ID matching (exact national-id / email+dob = 1.0; weighted fuzzy name/dob/phone/postal with auto / steward / reject thresholds; precision first;
-  conflicting clusters fall back to exact-only) -> id_crosswalk(source, id, golden_id, confidence, rule) -> golden C360 tables -> contract-based DQ checks
-  -> out/dq_report.md -> out/l2.duckdb (a separate DB that physically has no PII or protected columns).
-- Layer 2 (src/layer2.py): scope check (protected attrs, PII, bulk export, writes, off-topic) -> route (SQL vs notes search) -> NL-to-SQL (LLM if key, else templates)
-  -> sqlglot guard (SELECT only, approved tables/columns, row cap, role scoping) -> run read-only on l2.duckdb -> answer + SQL + freshness; every call audit-logged.
+The full-data pipeline expects the supplied release at `data/data`, documents at `data/files`, and the release manifest/schema under `data`. Outputs are generated under `out/` and `submission/`; do not edit the source release. The main databases are:
 
-## What changed from the design (say this in the final README)
-- Splink replaced by a hand-rolled weighted matcher in DuckDB SQL (same tiers and review queue). Swap in Splink if time allows.
-- Notes search uses TF-IDF; embeddings + FAISS is the scale-up path.
-- Free-text name masking is regex (emails/phones) only. Names inside notes are NOT masked yet.
+- `out/c360_maple.duckdb`: bronze source views, curated C360, identity candidates, restricted audit attributes, and DQ artifacts.
+- `out/l2_maple.duckdb`: approved, masked Layer 2 tables only.
+- `out/feature_store.duckdb`: latest nightly feature snapshot.
+- `out/training_history.parquet`: multiple point-in-time feature/label snapshots.
 
-## Layer 3 - Feature Store (src/layer3.py, run_layer3_demo.py)
-- 26 features in 5 groups (overdue, promise, contact, context, text), defined ONCE in feature_sql(as_of). Training (training_set), nightly batch (publish)
-  and live single-customer scoring (online) all call the same SQL. Registry: config/feature_registry.yaml. Store: out/feature_store.duckdb.
-- Reads only a masked Layer-2 DuckDB file (no protected attributes). Automatic tests check protected/stand-in columns, bulk == live, and point-in-time calculations.
-- Text features use keyword rules over masked notes (LLM reader can replace them; downstream unchanged). Every text feature traces to a note id.
-- `python run_layer3_demo.py` builds `out/l2_maple.duckdb` from the full release in `data/data`, including its quarterly account history and customer-linked collections records; it uses all matching release records instead of the small mock generated by `run_demo.py`.
-- CRM records with the same national-ID hash are assigned one deterministic golden ID. Bureau history is linked only when normalized name and date of birth identify one golden ID. The Layer-2 database contains only feature columns and masked note text; names, contact details, national-ID hashes, and protected attributes are not copied.
-- Account features use the latest account snapshot on or before the requested date. The release has quarterly snapshots through June 2026, so later dates use the latest available quarter-end snapshot.
-- Since those snapshots do not contain an `overdue_amount` field, overdue dollars are estimated as `minimum_due - payment_made` (floored at zero) for accounts with positive DPD.
-- The full release includes other assets (for example transcripts, policy documents, and operational reference tables) that are not copied into this feature store because the current 26 features do not consume them.
+To use another Layer 2 database with the UI or scripts, set `C360_L2_DB`. Optional LLM-backed NL-to-SQL is enabled only when `ANTHROPIC_API_KEY` is set. SQL validation, role scope, aggregation suppression, and read-only execution still apply.
+
+## Pipeline
+
+1. **Layer 1** exposes all 31 CSV/Parquet source tables through DuckDB bronze views, reconciles counts to `data/schema/schema.json`, and checks the release manifest file sizes. It creates identity candidates and a steward queue, curated C360 records, a contract, sensitivity inventory, and data-quality report.
+2. **Layer 2** publishes an allowlisted masked database, with no direct names, email/phone, national-ID hashes, or protected attributes. It supports deterministic templates and optional guarded NL-to-SQL, policy/document retrieval, deduplicated note/transcript retrieval with citations, role-based portfolio scoping, lead aggregate-only queries, minimum group size 10, and audit logging.
+3. **Layer 3** defines feature logic once for training, batch, and online paths. It supports monthly as-of snapshots, a chronological train/holdout split, temporal label windows, text features from masked notes and transcripts, and explicit evidence IDs.
+4. **Layer 4** trains LightGBM against a logistic-regression baseline using observed recent contact actions and future promise outcomes. It reports ROC AUC, Brier score and calibration bins, offers policy-gated workflow routing, per-row feature contributions, a restricted-data-only group fairness audit, and human override logging.
+
+The Streamlit UI provides bounded queue views, an assigned agent portfolio, customer/account context, guarded Q&A, identity candidate review, model action review, and audit views. It never initiates contact or executes a payment plan.
+
+## Safety and limitations
+
+- The account snapshot has no direct overdue-dollar field. `overdue_amount` is an estimate: `max(minimum_due - payment_made, 0)` when DPD is positive, capped at a nonnegative balance. Negative balances are retained as net credits with zero estimated overdue.
+- System events, invalid contact timestamps, and empty customer references are excluded from curated agent contacts. These exclusions are counted separately in `submission/dq_report.md`.
+- Cross-system identity matching uses DOB/name/phone/postal blocking with a custom weighted score. It is not Splink, and its score is not a calibrated match probability. Ambiguous candidates remain isolated pending review; the observed steward queue is large. The synthetic release has no labeled identity truth set, so precision/recall are not measured.
+- Free-text PII masking uses regex and source-customer first/last names. It is not a guarantee against every indirect identifier; review the generated DQ report and do not send unmasked source data to an LLM.
+- Retrieval currently uses sparse TF-IDF over masked notes, transcripts, and current non-superseded policy documents. It is not a sentence-transformer/FAISS index.
+- Layer 4 labels reflect observed promise outcomes after recorded contacts. They do not identify causal action effects or counterfactual policy value. Recommendations are workflow gates for a human, not autonomous decisions. Small fairness groups are suppressed.
+- Synthetic source data is for demonstration and must not be used for real collections decisions.
+
+See [submission/pre_submission_checklist.md](submission/pre_submission_checklist.md), [submission/architecture.mmd](submission/architecture.mmd), and [submission/demo_script.md](submission/demo_script.md).

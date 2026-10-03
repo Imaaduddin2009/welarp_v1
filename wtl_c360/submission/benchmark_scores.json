@@ -1,0 +1,177 @@
+{
+  "questions": 21,
+  "exact_matches": 0,
+  "exact_match_rate": 0.0,
+  "refusals": 7,
+  "missing_predictions": 0,
+  "results": [
+    {
+      "question_id": "BQ-002",
+      "gold_answer": "A maximum of 3 outbound call attempts in any rolling 7 days.",
+      "answer": "Found 5 relevant masked record(s). [policy:POL-COLL-001 v3.0 \u00a75.2 Contact frequency] \"A maximum of **3 outbound call attempts in any rolling 7 days** per case. Automated reminders count as attempts\nwhen they ask for payment.\" | [policy:IR-2026-0923 v1.0 Incident Report IR-2026-0923] \"**When**: 23-24 September 2026. The predictive dialer was degraded; outbound call capacity fell about 60%.\nExpect fewer call attempts and right-party contacts on those days; this is not a change in customer behaviour.\" | [policy:REG-SUM-001 v2026.1 Provincial Collection Rules Summary (REG-SUM-001) \u2014 synthetic summary] \"This hackathon summary simplifies provincial rules into one bank policy (see POL-COLL-001). Teams should\ntreat POL-COLL-001 as the rule set to apply: local-time contact hours, a cap of 3 call attempts in 7 days,\nSunday limits where Sunday contact is permitted, no contact on statutory holidays, French-language service\nfor French-speaking customers, and the stay of proceedings during insolvency.\"",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-003",
+      "gold_answer": "prior_broken,broken_rate_pct,promises\n0,40.1,167046\n1,50.7,29340\n2,59.8,6486\n3,69.3,1497",
+      "answer": "9702",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-004",
+      "gold_answer": "queue,avg_dpd,open_cases\nearly_stage,14.5,30922\nhardship_specialist,71.9,12244\nlate_stage,126.2,11017\nmid_stage,56.1,32241\nspecial_handling,90.1,9576",
+      "answer": "350.8",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-005",
+      "gold_answer": "No. The National Do Not Call List applies to telemarketing only and does not block collection calls.",
+      "answer": "I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: \"Which product type has the highest total overdue amount?\"",
+      "refused": true,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-006",
+      "gold_answer": "period,disputes\n15-22 Sep,875\n7-14 Sep,566",
+      "answer": "I can't answer that: it is not about Maple Bank collections data. Try instead: \"Which product type has the highest total overdue amount?\"",
+      "refused": true,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-007",
+      "gold_answer": "site,broken_rate_pct,promises\nCalgary,61.4,7123\nHalifax,58.7,5902\nMontr\u00e9al,59.7,15998\nToronto,59.8,13120\nWindsor,59.2,7087\nself_serve,53.5,8426\nvendor,58.9,4261",
+      "answer": "9702",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-010",
+      "gold_answer": "province_code,out_of_hours_pct,calls\nAB,0.0,20991\nBC,0.0,25977\nMB,0.0,5107\nNB,0.0,2473\nNL,4.78,899\nNS,0.0,3653\nNT,0.0,99\nNU,0.0,75\nON,0.0,61589\nPE,0.0,352\nQC,0.0,35411\nSK,4.26,4434\nYT,0.0,113",
+      "answer": "Found 5 relevant masked record(s). [policy:IR-2026-0923 v1.0 Incident Report IR-2026-0923] \"**When**: 23-24 September 2026. The predictive dialer was degraded; outbound call capacity fell about 60%.\nExpect fewer call attempts and right-party contacts on those days; this is not a change in customer behaviour.\" | [policy:IR-2026-0914 v1.0 Incident Report IR-2026-0914] \"**When**: 14 September 2026, 09:10-15:40 ET. **Severity**: sev2.\n\nPayments made in the mobile app and online banking were not posted until the next day. About 1,900 card\naccounts were charged a late fee in error. Fees are being reversed in the next statement cycle.\n\nExpected data signature: late-fee disputes about 3x baseline between 15 and 22 September 2026.\" | [note:N-0514209] \"spoke w/ cust promised 2026 by Aug 8 sent pmt link\"",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-011",
+      "gold_answer": "contact_hour_local,rpc_rate_pct,attempts\n5,41.1,190\n8,31.1,7322\n9,27.1,10955\n10,26.9,12845\n11,32.8,12826\n12,40.2,10857\n13,36.6,11935\n14,37.0,11842\n15,38.8,11869\n16,43.4,13556\n17,61.2,15952\n18,62.1,17712\n19,59.2,16079\n20,53.0,8820\n21,38.9,18\n22,34.6,26",
+      "answer": "channel,contacts,answer_rate_pct\r\ncall,1016842,58.3\r\nletter,356536,0.0\r\nemail,322306,0.0\r\nsms,304592,2.0\r\nivr,82643,28.5\r\npush,66368,1.9\r\nchat,15406,100.0",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-012",
+      "gold_answer": "product_code,delinquency_rate_pct,accounts\nCBV-CLASSIC,8.65,123186\nLRV-CLASSIC,8.6,49108\nNFM-STD,8.73,102807\nSCV-SECURED,9.25,38310\nSTM-STUDENT,10.09,36200\nTRV-INFINITE,7.17,90161\nWEM-ELITE,6.58,48031",
+      "answer": "product_type,delinquent_accounts\r\ncard,49983\r\npersonal_loan,19668\r\nauto_loan,12541\r\nunsecured_loc,9287\r\nchequing,8396\r\nmortgage,3023\r\nstudent_loc,226",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-016",
+      "gold_answer": "Customer reports illness; promised $95 on 14 Oct; next step: hardship plan review.",
+      "answer": "Found 5 relevant masked record(s). [note:N-0514209] \"spoke w/ cust promised 2026 by Aug 8 sent pmt link\" | [policy:PRC-COLL-012 v1.4 \u00a76.2 Late-fee disputes after incidents] \"Fees charged because of a bank system incident are reversed without the customer having to prove payment.\nSee IR-2026-0914.\" | [note:N-3506867] \"client a appel\u00e9 promesse 2026 $ 12 mai\"",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-017",
+      "gold_answer": "product_type,roll_rate_pct,accounts\nauto_loan,7.4,430\ncard,4.9,2699\nchequing,5.0,500\nmortgage,3.6,193\npersonal_loan,4.9,733\nstudent_loc,25.0,8\nunsecured_loc,5.9,290",
+      "answer": "product_type,delinquent_accounts\r\ncard,49983\r\npersonal_loan,19668\r\nauto_loan,12541\r\nunsecured_loc,9287\r\nchequing,8396\r\nmortgage,3023\r\nstudent_loc,226",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-018",
+      "gold_answer": "Refuse: outside scope",
+      "answer": "I can't answer that: it is not about Maple Bank collections data. Try instead: \"Which product type has the highest total overdue amount?\"",
+      "refused": true,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-019",
+      "gold_answer": "Acknowledge the hardship, record it, and offer at least one eligible hardship option before asking for payment.",
+      "answer": "Found 5 relevant masked record(s). [policy:PRC-COLL-012 v1.4 \u00a76.1 Raising a dispute] \"If a customer disputes a fee, a transaction, or says a payment was not applied, the agent opens a dispute and\npauses payment requests for the disputed amount until it is resolved. Fraud claims are transferred to the\nfraud team.\" | [policy:PRC-COLL-010 v2.1 \u00a73.2 Confirming the promise] \"The agent must read back the amount and date before ending the call, and offer a payment link. A reminder is\nscheduled before the due date.\" | [note:N-7014328] \"SPOKE TO CUSTOMER - SHIFTS CUT AT WORK SINCE MAY\"",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-022",
+      "gold_answer": "Customer reports reduced hours / income; promised $595 on 5 Oct; asked to stop contact; next step: stop contact.",
+      "answer": "Found 5 relevant masked record(s). [note:N-0514209] \"spoke w/ cust promised 2026 by Aug 8 sent pmt link\" | [policy:PRC-COLL-012 v1.4 \u00a76.2 Late-fee disputes after incidents] \"Fees charged because of a bank system incident are reversed without the customer having to prove payment.\nSee IR-2026-0914.\" | [note:N-3506867] \"client a appel\u00e9 promesse 2026 $ 12 mai\"",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-024",
+      "gold_answer": "Refuse: protected ground",
+      "answer": "I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: \"How many hardship customers have an account more than 30 days past due?\"",
+      "refused": true,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-026",
+      "gold_answer": "3 months; payment reduced by 50% (customer pays 50% of the regular payment); interest keeps accruing.",
+      "answer": "I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: \"Which product type has the highest total overdue amount?\"",
+      "refused": true,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-028",
+      "gold_answer": "test_cell,kept_pct,promises\nchallenger_A,53.6,12168\nchallenger_B,53.7,12236\nchampion,53.8,53121",
+      "answer": "55.9",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-031",
+      "gold_answer": "Refuse: protected ground",
+      "answer": "I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: \"How many hardship customers have an account more than 30 days past due?\"",
+      "refused": true,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-032",
+      "gold_answer": "primary_product,hardship_rate_pct,cases\nauto_loan,26.8,21800\ncard,19.8,78688\nloc,25.4,16272\nmortgage,10.7,4710\noverdraft,18.8,15613\npersonal_loan,25.5,36274",
+      "answer": "46218",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-034",
+      "gold_answer": "promise_kept_rate_pct\n35.1",
+      "answer": "55.9",
+      "refused": false,
+      "exact_match": false,
+      "missing_prediction": false
+    },
+    {
+      "question_id": "BQ-035",
+      "gold_answer": "current_bucket,open_cases\n1-30,33639\n121-150,6184\n151-180,4045\n180+,180\n31-60,25389\n61-90,16312\n91-120,10251",
+      "answer": "I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: \"Which product type has the highest total overdue amount?\"",
+      "refused": true,
+      "exact_match": false,
+      "missing_prediction": false
+    }
+  ]
+}

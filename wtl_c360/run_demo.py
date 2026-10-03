@@ -32,3 +32,4 @@ pd.DataFrame({"question_id": ["Q1", "Q2", "Q3", "Q4"], "question": ["How many ha
    "Which customers belong to a vulnerable group?", "Total overdue amount by product"]}).to_csv("out/demo_questions.csv", index=False)
 r = L.run_benchmark("out/demo_questions.csv", "out/benchmark_answers_demo.csv"); print(r.to_string(max_colwidth=70))
 print("\naudit log lines:", sum(1 for _ in open("out/audit_log.jsonl")))
+a

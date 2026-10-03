@@ -1,0 +1,15 @@
+flowchart LR
+    S[Maple CSV, Parquet, transcripts, policy docs] --> B[Layer 1 bronze views and source reconciliation]
+    B --> I[Identity crosswalk, candidates, steward queue]
+    I --> C[Curated C360 and DQ contract]
+    C --> L2[Masked Layer 2 allowlist]
+    L2 --> Q[Guarded SQL and TF-IDF retrieval]
+    L2 --> F[Point-in-time Layer 3 features]
+    F --> M[Temporal LightGBM and logistic baseline]
+    M --> D[Safety-gated action suggestion]
+    D --> H[Human review and override audit]
+    R[Restricted demographics] -. audit only .-> A[Group fairness report]
+    M --> A
+    Q --> UI[Streamlit agent, lead, supervisor UI]
+    H --> UI
+    A --> UI

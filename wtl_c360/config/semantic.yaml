@@ -12,7 +12,6 @@ tables:
       consent_email: True if the customer consented to email contact
       consent_phone: True if the customer consented to phone calls
       bureau_score: Credit-bureau score 300-900 (NULL if unknown)
-      bureau_band: poor / fair / good / excellent / unknown
       n_product_systems: How many product systems (card, loan, deposit) the customer has
   accounts:
     description: One row per card / loan / deposit account at the snapshot date.
@@ -51,6 +50,7 @@ tables:
       golden_id: Customer
       agent_id: Agent who made the contact
       channel: phone, sms or email
+      direction: inbound or outbound
       contact_date: Date of contact
       outcome: answered, no_answer, promise_made, refused or voicemail
       note_id: Agent note written for this contact (join to notes.note_id)
@@ -60,10 +60,37 @@ tables:
       note_id: Note id
       golden_id: Customer
       note_text_masked: Masked free text
+  transcripts:
+    description: Call transcript turns aggregated by call; customer and contact identifiers are pseudonymous and text is masked.
+    columns:
+      transcript_id: Transcript id
+      contact_id: Contact id
+      case_id: Case id
+      golden_id: Customer
+      agent_id: Collections agent
+      call_start_ts: Call start timestamp
+      transcript_text_masked: Masked call transcript
+  bureau_scores:
+    description: Point-in-time credit bureau scores linked to a golden customer.
+    columns:
+      golden_id: Customer
+      score_date: Bureau pull date
+      bureau_score: Credit bureau risk score
+  policy_chunks:
+    description: Current policy, procedure, FAQ, and release documents chunked by section; superseded versions are excluded.
+    columns:
+      doc_id: Source document identifier
+      title: Document title
+      version: Current document version
+      effective_date: Effective date
+      section: Heading used as the chunk section
+      source_path: Relative source document path
+      content: Policy text
 joins:
   - customers.golden_id = accounts.golden_id = cases.golden_id = promises.golden_id = contacts.golden_id = notes.golden_id
   - cases.case_id = promises.case_id = contacts.case_id
   - contacts.note_id = notes.note_id
+  - customers.golden_id = transcripts.golden_id = bureau_scores.golden_id
 terms:
   delinquent: days_past_due > 0 on any account
   overdue: overdue_amount > 0
@@ -71,7 +98,9 @@ terms:
   promise kept rate: KEPT / (KEPT + BROKEN)
   last N days: date >= snapshot_date - N days
   hardship customer: customers.hardship_flag = true
-forbidden_columns: [gender, marital_status, citizenship, household, dependants, newcomer, accessibility, vulnerability, accent,
-                    first_name, last_name, dob, email, phone, postal_code, national_id_hash, nid]
+forbidden_columns: [gender, gender_code, marital_status, citizenship, citizenship_status, household, dependants,
+                    newcomer, newcomer_program_flag, accessibility, accessibility_needs_flag,
+                    vulnerability, vulnerability_flag, accent, province_code, location, postal_code,
+                    first_name, last_name, dob, date_of_birth, email, phone, national_id_hash, nid]
 vocabulary: [customer, account, loan, card, deposit, promise, case, overdue, delinquen, balance, contact, call, note, hardship, agent,
-             collection, payment, arrears, past due, dpd, cure, channel, consent, bureau, score, segment, queue, escalat, sms, email, transcript]
+             collection, payment, arrears, past due, dpd, cure, channel, consent, bureau, score, segment, queue, escalat, sms, email, transcript, risk]
