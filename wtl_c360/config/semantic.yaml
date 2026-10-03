@@ -1,0 +1,77 @@
+# Business dictionary (semantic layer). The NL-to-SQL step may ONLY use what is listed here.
+snapshot_date: "2026-09-28"     # "today" for every relative-date question (not the wall clock)
+tables:
+  customers:
+    description: One row per real customer (golden record). No names, phones, emails, addresses, DOB. No protected attributes.
+    columns:
+      golden_id: Unique customer id (join key to every other table)
+      language: Preferred language EN or FR
+      segment: Customer segment (mass, affluent, student)
+      hardship_flag: True if the customer is flagged as in financial hardship
+      consent_sms: True if the customer consented to SMS contact
+      consent_email: True if the customer consented to email contact
+      consent_phone: True if the customer consented to phone calls
+      bureau_score: Credit-bureau score 300-900 (NULL if unknown)
+      bureau_band: poor / fair / good / excellent / unknown
+      n_product_systems: How many product systems (card, loan, deposit) the customer has
+  accounts:
+    description: One row per card / loan / deposit account at the snapshot date.
+    columns:
+      account_id: Account id
+      golden_id: Customer
+      product_type: card, loan or deposit
+      balance: Current balance in dollars
+      overdue_amount: Overdue dollars (0 if current)
+      days_past_due: Days past due (0 = current)
+      snapshot_date: Date of the balance snapshot
+  cases:
+    description: Collections cases. One customer can have several.
+    columns:
+      case_id: Case id
+      golden_id: Customer
+      status: open, on_hold, disputed or closed
+      stage: early, mid or late delinquency stage
+      agent_id: Collections agent who owns the case
+      opened_date: Date opened
+      product_type: Product the case is about
+  promises:
+    description: Promises to pay made on cases.
+    columns:
+      ptp_id: Promise id
+      case_id: Case it belongs to (join to cases.case_id)
+      golden_id: Customer
+      promised_date: Date the customer promised to pay
+      promised_amount: Promised dollars
+      status: KEPT or BROKEN
+  contacts:
+    description: Contact attempts (calls, SMS, emails) made by agents.
+    columns:
+      contact_id: Contact id
+      case_id: Case
+      golden_id: Customer
+      agent_id: Agent who made the contact
+      channel: phone, sms or email
+      contact_date: Date of contact
+      outcome: answered, no_answer, promise_made, refused or voicemail
+      note_id: Agent note written for this contact (join to notes.note_id)
+  notes:
+    description: Agent notes, personal data masked. Use the text search route for questions about what was said.
+    columns:
+      note_id: Note id
+      golden_id: Customer
+      note_text_masked: Masked free text
+joins:
+  - customers.golden_id = accounts.golden_id = cases.golden_id = promises.golden_id = contacts.golden_id = notes.golden_id
+  - cases.case_id = promises.case_id = contacts.case_id
+  - contacts.note_id = notes.note_id
+terms:
+  delinquent: days_past_due > 0 on any account
+  overdue: overdue_amount > 0
+  broken promise: promises.status = 'BROKEN'
+  promise kept rate: KEPT / (KEPT + BROKEN)
+  last N days: date >= snapshot_date - N days
+  hardship customer: customers.hardship_flag = true
+forbidden_columns: [gender, marital_status, citizenship, household, dependants, newcomer, accessibility, vulnerability, accent,
+                    first_name, last_name, dob, email, phone, postal_code, national_id_hash, nid]
+vocabulary: [customer, account, loan, card, deposit, promise, case, overdue, delinquen, balance, contact, call, note, hardship, agent,
+             collection, payment, arrears, past due, dpd, cure, channel, consent, bureau, score, segment, queue, escalat, sms, email, transcript]

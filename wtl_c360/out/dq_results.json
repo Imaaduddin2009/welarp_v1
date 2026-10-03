@@ -1,0 +1,90 @@
+[
+ {
+  "rule": 1,
+  "description": "golden_id present and unique in c360_customer",
+  "checked": 3150,
+  "failed": 0,
+  "status": "PASS",
+  "on_fail": "block publish"
+ },
+ {
+  "rule": 2,
+  "description": "every source record maps to exactly one golden_id",
+  "checked": 10658,
+  "failed": 0,
+  "status": "PASS",
+  "on_fail": "block publish; steward"
+ },
+ {
+  "rule": 3,
+  "description": "c360_account: every row has a valid golden_id",
+  "checked": 5431,
+  "failed": 0,
+  "status": "PASS",
+  "on_fail": "set rows aside"
+ },
+ {
+  "rule": 3,
+  "description": "c360_promise: every row has a valid golden_id",
+  "checked": 1228,
+  "failed": 0,
+  "status": "PASS",
+  "on_fail": "set rows aside"
+ },
+ {
+  "rule": 3,
+  "description": "c360_contact: every row has a valid golden_id",
+  "checked": 1960,
+  "failed": 0,
+  "status": "PASS",
+  "on_fail": "set rows aside"
+ },
+ {
+  "rule": 3,
+  "description": "c360_case: every row has a valid golden_id",
+  "checked": 811,
+  "failed": 0,
+  "status": "PASS",
+  "on_fail": "set rows aside"
+ },
+ {
+  "rule": 3,
+  "description": "c360_note: every row has a valid golden_id",
+  "checked": 1960,
+  "failed": 0,
+  "status": "PASS",
+  "on_fail": "set rows aside"
+ },
+ {
+  "rule": 4,
+  "description": "days_past_due>=0, overdue>=0, overdue<=balance (published accounts)",
+  "checked": 5431,
+  "failed": 0,
+  "status": "PASS",
+  "on_fail": "set rows aside"
+ },
+ {
+  "rule": 5,
+  "description": "dob / phone / postal valid in customer record (raw kept)",
+  "checked": 3150,
+  "failed": 802,
+  "status": "WARN",
+  "on_fail": "set aside, keep raw"
+ },
+ {
+  "rule": 6,
+  "description": "hardship and consent flags never empty",
+  "checked": 3150,
+  "failed": 0,
+  "status": "PASS",
+  "on_fail": "block publish"
+ },
+ {
+  "rule": 7,
+  "description": "freshness: snapshot date within 2 days of expected",
+  "checked": 1,
+  "failed": 0,
+  "status": "PASS",
+  "on_fail": "mark stale; alert owner"
+ }
+]

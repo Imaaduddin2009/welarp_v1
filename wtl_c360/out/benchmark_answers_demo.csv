@@ -1,0 +1,5 @@
+question_id,answer,sql_or_sources,refused
+Q1,196,SELECT COUNT(*) AS hardship_customers FROM customers WHERE hardship_flag LIMIT 100,false
+Q2,38.2,"SELECT ROUND(AVG(days_past_due), 1) AS avg_days_past_due FROM accounts WHERE product_type = 'card' AND days_past_due > 0 LIMIT 100",false
+Q3,"I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: ""How many hardship customers have an account more than 30 days past due?""",,true
+Q4,"3 row(s). product_type,total_overdue / card,640895.89 / loan,488074.1 / deposit,459679.78","SELECT product_type, ROUND(SUM(overdue_amount), 2) AS total_overdue FROM accounts GROUP BY 1 ORDER BY 2 DESC LIMIT 100",false

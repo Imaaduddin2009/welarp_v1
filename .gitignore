@@ -1,0 +1,7 @@
+/wtl_c360/data
+*.pyc
+*.duckdb
+*.parquet
+__pycache__/
+*.pyc
+/.vscode

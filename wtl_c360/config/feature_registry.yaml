@@ -1,0 +1,133 @@
+version: v1
+features:
+  max_days_past_due:
+    group: overdue
+    source: accounts
+    meaning: Worst days-past-due across the customer's accounts
+    point_in_time_safe: true
+  total_overdue_amount:
+    group: overdue
+    source: accounts
+    meaning: Total dollars overdue across card, loan and deposit
+    point_in_time_safe: true
+  n_products_overdue:
+    group: overdue
+    source: accounts
+    meaning: How many accounts are overdue
+    point_in_time_safe: true
+  total_balance:
+    group: overdue
+    source: accounts
+    meaning: Total balance across accounts
+    point_in_time_safe: true
+  promises_made_90d:
+    group: promise
+    source: promises
+    meaning: Promises to pay made in the last 90 days
+    point_in_time_safe: true
+  promises_broken_90d:
+    group: promise
+    source: promises
+    meaning: Of those, how many were broken
+    point_in_time_safe: true
+  promise_kept_rate_90d:
+    group: promise
+    source: promises
+    meaning: Share of last-90-day promises that were kept (blank if none)
+    point_in_time_safe: true
+  days_since_last_promise:
+    group: promise
+    source: promises
+    meaning: Days since the most recent promise
+    point_in_time_safe: true
+  contact_attempts_14d:
+    group: contact
+    source: contacts
+    meaning: Times we contacted them in the last 14 days
+    point_in_time_safe: true
+  last_contact_outcome:
+    group: contact
+    source: contacts
+    meaning: Outcome of the most recent contact
+    point_in_time_safe: true
+  best_channel:
+    group: contact
+    source: contacts
+    meaning: Channel they answer most often (needs 2+ attempts)
+    point_in_time_safe: true
+  consent_sms:
+    group: contact
+    source: customers
+    meaning: Agreed to SMS
+    point_in_time_safe: true
+  consent_email:
+    group: contact
+    source: customers
+    meaning: Agreed to email
+    point_in_time_safe: true
+  consent_phone:
+    group: contact
+    source: customers
+    meaning: Agreed to phone calls
+    point_in_time_safe: true
+  hardship_flag:
+    group: context
+    source: customers
+    meaning: Officially flagged as financial hardship
+    point_in_time_safe: true
+  bureau_score:
+    group: context
+    source: customers
+    meaning: Credit bureau score
+    point_in_time_safe: true
+  case_stage:
+    group: context
+    source: cases
+    meaning: Delinquency stage of the main case
+    point_in_time_safe: true
+  case_status:
+    group: context
+    source: cases
+    meaning: Status of the main case (open, on_hold, disputed...)
+    point_in_time_safe: true
+  days_case_open:
+    group: context
+    source: cases
+    meaning: Days since the main case was opened
+    point_in_time_safe: true
+  txt_job_loss:
+    group: text
+    source: notes
+    meaning: 'Agent notes mention: lost my job (and similar)'
+    point_in_time_safe: true
+  txt_medical:
+    group: text
+    source: notes
+    meaning: 'Agent notes mention: medical (and similar)'
+    point_in_time_safe: true
+  txt_income_delay:
+    group: text
+    source: notes
+    meaning: 'Agent notes mention: salary delayed (and similar)'
+    point_in_time_safe: true
+  txt_dispute:
+    group: text
+    source: notes
+    meaning: 'Agent notes mention: dispute (and similar)'
+    point_in_time_safe: true
+  txt_cooperative:
+    group: text
+    source: notes
+    meaning: 'Agent notes mention: will pay (and similar)'
+    point_in_time_safe: true
+  txt_struggling:
+    group: text
+    source: notes
+    meaning: 'Agent notes mention: struggl (and similar)'
+    point_in_time_safe: true
+  hardship_review_needed:
+    group: text
+    source: notes
+    meaning: Notes hint at hardship but the customer is NOT flagged -> a person should
+      check
+    point_in_time_safe: true
