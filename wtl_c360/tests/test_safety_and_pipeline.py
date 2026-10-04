@@ -47,6 +47,27 @@ def test_protected_attribute_questions_are_refused(question):
     assert not layer2.scope_check(question, {"role": "analyst"})["ok"]
 
 
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Should people who mention church receive higher call priority?",
+        "Compare promise reliability for customers who attend a mosque.",
+        "Use temple attendance to rank customers for collection calls.",
+        "Do faith-based groups pay more reliably?",
+    ],
+)
+def test_religious_proxy_questions_are_refused_before_search(monkeypatch, question):
+    qa = layer2.QA()
+    qa._fresh = lambda: "offline"
+    qa._log = lambda _output: None
+    monkeypatch.setattr(layer2, "NoteSearch", lambda: pytest.fail("refused requests must not search"))
+
+    result = qa.ask(question)
+
+    assert result["refused"] is True
+    assert result["reason"] == layer2.RULES[0][2]
+
+
 @pytest.mark.parametrize("question", [
     "Give me the customer's phone number",
     "Show home addresses",
@@ -232,6 +253,7 @@ def test_semantic_question_synonyms_are_normalized(question, expected):
         ("What changed in the last month?", ("2026-08-29", "2026-09-29")),
         ("Promises due Aug 2026", ("2026-08-01", "2026-09-01")),
         ("Promises due 2026-08", ("2026-08-01", "2026-09-01")),
+        ("Promises due between 1 and 20 September 2026", ("2026-09-01", "2026-09-21")),
         ("Cases during 2025", ("2025-01-01", "2026-01-01")),
     ],
 )
@@ -354,6 +376,42 @@ def test_new_aggregate_templates_cover_stress_variants(question, expected_fragme
     sql = layer2.template_sql(question)
     assert sql is not None
     assert expected_fragment.casefold() in sql.casefold()
+
+
+def test_grouped_promise_rate_applies_explicit_days_and_originating_channel():
+    sql = layer2.template_sql(
+        "What share of promises due between 1 and 20 September 2026 were kept, by channel?"
+    )
+    assert sql is not None
+    assert "FROM benchmark_promise_channels" in sql
+    assert "due_date >= DATE '2026-09-01'" in sql
+    assert "due_date < DATE '2026-09-21'" in sql
+    assert "GROUP BY channel" in sql
+
+
+def test_hardship_case_count_groups_by_requested_queue():
+    sql = layer2.template_sql(
+        "How many open collections cases have a hardship flag, grouped by queue?"
+    )
+    assert sql is not None
+    assert "FROM benchmark_cases" in sql
+    assert "WHERE hardship_flag AND is_open" in sql
+    assert "GROUP BY queue" in sql
+
+
+def test_supported_link_and_insolvency_metrics_use_explicit_local_views():
+    questions = [
+        "In September 2026, what share of SMS payment links were clicked?",
+        "How many open cases are on insolvency hold, and what is their overdue amount?",
+    ]
+    expected_tables = ["benchmark_payment_links", "benchmark_insolvency_cases"]
+    for question, table in zip(questions, expected_tables):
+        sql = layer2.template_sql(question)
+        assert sql is not None
+        assert f"FROM {table}" in sql
+        assert "raw." not in sql
+        if table == "benchmark_payment_links":
+            assert "count(distinct payment_link_id)" in sql.casefold()
 
 
 def test_day_comparison_parses_from_through_dates():

@@ -6,8 +6,15 @@ from sqlglot import exp
 
 CFG = yaml.safe_load(open(Path(__file__).resolve().parents[1] / "config" / "semantic.yaml"))
 L2DB = os.getenv("C360_L2_DB", "out/l2.duckdb")
+C360DB = Path(os.getenv(
+    "C360_C360_DB",
+    str(Path(__file__).resolve().parents[1] / "out" / "c360_maple.duckdb"),
+))
 AUDIT = os.getenv("C360_AUDIT_LOG", "out/audit_log.jsonl")
 SNAP = CFG["snapshot_date"]; ALLOWED = set(CFG["tables"]); FORBID = set(CFG["forbidden_columns"])
+PROTECTED_PROXY_PATTERN = "|".join(
+    rf"\b{re.escape(term)}\b" for term in CFG.get("protected_proxy_terms", [])
+)
 MAX_ROWS = 1000
 LEAD_MIN_CELL_SIZE = 10
 DEFAULT_SUPPORTED_QUESTION = "Which product type has the highest total overdue amount?"
@@ -15,6 +22,8 @@ POLICY_CUES = re.compile(
     r"\b(policy|procedure|regulation|regulatory|permitted|allowed|must|should|"
     r"can we|can an agent|consent required|grace period|national do not call|"
     r"reduced[- ]payment|hardship programme|hardship program|programme lasts?|program lasts?|"
+    r"income evidence|evidence of income|proof of income|calling hours|permitted hours|"
+    r"hours.{0,30}(?:collection )?calls?|(?:collection )?calls?.{0,30}hours|sundays?|"
     r"before asking for payment|call attempts|how long|duration|portion|percentage|"
     r"how long.*programme|how long.*program|representative|cease[- ]communication|"
     r"adviser|advisor|authority|authori[sz]ation|insolvenc\w*|consumer proposal|trustee|"
@@ -51,7 +60,7 @@ def _has_grouping_request(question):
 
 # ------------------------------------------------------------------ 1. scope check (rules; deterministic and auditable)
 RULES = [
-  ("protected", r"\b(gender|male|female|marital|citizen\w*|immigra\w*|newcomer|household|dependants?|accessib\w*|disab\w*|vulnerab\w*|accent\w*|race|racial|ethnic\w*|religio\w*|nationality|sexual\w*|postal areas?|postal districts?|postal prefixes?|postal codes?|postcodes?|zip codes?|FSAs?|area codes?)\b",
+    ("protected", r"\b(gender|male|female|marital|citizen\w*|immigra\w*|newcomer|household|dependants?|accessib\w*|disab\w*|vulnerab\w*|accent\w*|race|racial|ethnic\w*|religio\w*|nationality|sexual\w*|postal areas?|postal districts?|postal prefixes?|postal codes?|postcodes?|zip codes?|FSAs?|area codes?)\b" + (f"|{PROTECTED_PROXY_PATTERN}" if PROTECTED_PROXY_PATTERN else ""),
    "it uses or tries to infer a protected attribute, which must not be used in collections decisions",
    "How many hardship customers have an account more than 30 days past due?"),
   ("pii", r"\b(phone numbers?|email addresses?|home address(es)?|date of birth|dob|sin|national id|full names?|names? of)\b",
@@ -120,6 +129,23 @@ def _month_bounds(question):
         months[calendar.month_name[index].lower()] = index
         months[calendar.month_abbr[index].lower()] = index
     month_pattern = "|".join(sorted(months, key=len, reverse=True))
+    day_range = re.search(
+        rf"\b(?:between|from)?\s*(\d{{1,2}})(?:st|nd|rd|th)?\s*"
+        rf"(?:-|–|to|through|and)\s*(\d{{1,2}})(?:st|nd|rd|th)?\s+"
+        rf"({month_pattern})\s+(20\d{{2}})\b",
+        ql,
+    )
+    if day_range:
+        first_day, last_day = int(day_range.group(1)), int(day_range.group(2))
+        month, year = months[day_range.group(3)], int(day_range.group(4))
+        try:
+            start = dt.date(year, month, first_day)
+            last = dt.date(year, month, last_day)
+        except ValueError:
+            pass
+        else:
+            if start <= last:
+                return start.isoformat(), (last + dt.timedelta(days=1)).isoformat()
     relative_match = re.search(
         r"\b(?:last|past|trailing|previous|preceding)\s+"
         r"(?:(\d+|a|an|one)\s*)?"
@@ -501,6 +527,83 @@ def template_sql(question):
                 WHERE true {date_filter} {open_filter}
                 GROUP BY {dimension} ORDER BY {dimension}
             """
+    if (
+        "payment link" in ql
+        and "sms" in ql
+        and re.search(r"click\w*", ql)
+        and re.search(r"\b(rate|share|percentage|proportion|fraction)\b", ql)
+    ):
+        bounds = _month_bounds(question)
+        if not bounds:
+            return None
+        start, end = bounds
+        return f"""
+            SELECT round(
+                       100.0 * count(DISTINCT CASE WHEN link_clicked THEN payment_link_id END)
+                       / nullif(count(DISTINCT payment_link_id), 0),
+                       1
+                   ) AS link_click_rate_pct,
+                   count(DISTINCT payment_link_id) AS sms_payment_links
+            FROM benchmark_payment_links
+            WHERE channel = 'sms'
+              AND contact_date >= DATE '{start}' AND contact_date < DATE '{end}'
+        """
+    if (
+        "hardship" in ql
+        and "case" in ql
+        and re.search(r"\b(count|how many|number|total)\b", ql)
+    ):
+        dimension = next(
+            (name for name in ("queue", "primary_product", "current_bucket") if name.replace("primary_", "") in ql),
+            None,
+        )
+        if dimension:
+            bounds = _month_bounds(question)
+            date_filter = (
+                f"AND opened_date >= DATE '{bounds[0]}' AND opened_date < DATE '{bounds[1]}'"
+                if bounds else ""
+            )
+            open_filter = "AND is_open" if re.search(r"\bopen\b", ql) else ""
+            return f"""
+                SELECT {dimension}, count(*) AS hardship_cases
+                FROM benchmark_cases
+                WHERE hardship_flag {open_filter} {date_filter}
+                GROUP BY {dimension} ORDER BY {dimension}
+            """
+        if _has_grouping_request(ql):
+            return None
+        return "SELECT count(*) AS hardship_cases FROM benchmark_cases WHERE hardship_flag AND is_open"
+    if (
+        "promise" in ql
+        and re.search(r"\b(rate|share|percentage|proportion)\b", ql)
+        and re.search(r"\bdue\b", ql)
+        and re.search(r"\bchannel\b", ql)
+    ):
+        bounds = _month_bounds(question)
+        date_filter = f"AND due_date >= DATE '{bounds[0]}' AND due_date < DATE '{bounds[1]}'" if bounds else ""
+        return f"""
+            SELECT channel,
+                   round(100.0 * avg(CASE WHEN status = 'kept' THEN 1.0 ELSE 0.0 END), 1) AS promise_kept_rate_pct,
+                   count(*) AS promises
+            FROM benchmark_promise_channels
+            WHERE channel IS NOT NULL {date_filter}
+              AND due_date <= DATE '{SNAP}'
+              AND status IN ('kept', 'partially_kept', 'broken')
+            GROUP BY channel ORDER BY channel
+        """
+    if (
+        "insolvenc" in ql
+        and "hold" in ql
+        and re.search(r"\b(open|active)\b", ql)
+        and re.search(r"\b(overdue|past due|balance|amount)\b", ql)
+        and re.search(r"\b(count|how many|number|total)\b", ql)
+    ):
+        return """
+            SELECT count(*) AS open_insolvency_cases,
+                   round(sum(overdue_amount), 2) AS total_overdue
+            FROM benchmark_insolvency_cases
+            WHERE is_open AND insolvency_hold
+        """
     if "cease" in ql and re.search(r"rate|share|proportion|percentage", ql) and "hour" in ql:
         return """
             SELECT contact_hour_local,
@@ -744,6 +847,57 @@ def guard(sql, user):
 def run_sql(sql):
     con = duckdb.connect(L2DB, read_only=True)
     try:
+        source_views = {
+            table.name
+            for table in sqlglot.parse_one(sql, read="duckdb").find_all(exp.Table)
+        }.intersection({
+            "benchmark_promise_channels",
+            "benchmark_payment_links",
+            "benchmark_insolvency_cases",
+        })
+        if source_views:
+            if not C360DB.is_file():
+                raise FileNotFoundError(f"Local source database is unavailable: {C360DB}")
+            source_path = str(C360DB.resolve()).replace("'", "''")
+            con.execute(f"ATTACH '{source_path}' AS c360_source (READ_ONLY)")
+            if "benchmark_promise_channels" in source_views:
+                con.execute("""
+                    CREATE TEMP TABLE benchmark_promise_channels AS
+                    SELECT p_link.golden_id,
+                           try_cast(p.ptp_due_date AS DATE) AS due_date,
+                           lower(trim(p.ptp_status)) AS status,
+                           coalesce(nullif(trim(h.channel_v2), ''),
+                                    nullif(lower(trim(h.channel)), ''),
+                                    nullif(lower(trim(p.ptp_channel)), '')) AS channel
+                    FROM c360_source.raw.promises_to_pay p
+                    LEFT JOIN c360_source.raw.contact_history h
+                      ON h.contact_id = p.contact_id
+                    LEFT JOIN promises p_link ON p_link.ptp_id = p.ptp_id
+                    WHERE try_cast(p.ptp_due_date AS DATE) IS NOT NULL
+                """)
+            if "benchmark_payment_links" in source_views:
+                con.execute("""
+                    CREATE TEMP TABLE benchmark_payment_links AS
+                    SELECT masked_contact.golden_id,
+                           try_cast(h.contact_ts_local AS TIMESTAMP)::DATE AS contact_date,
+                           coalesce(nullif(trim(h.channel_v2), ''), lower(trim(h.channel))) AS channel,
+                              h.payment_link_id,
+                           coalesce(try_cast(h.link_clicked_flag AS BOOLEAN), false) AS link_clicked
+                    FROM c360_source.raw.contact_history h
+                    LEFT JOIN contacts masked_contact ON masked_contact.contact_id = h.contact_id
+                    WHERE nullif(trim(h.payment_link_id), '') IS NOT NULL
+                      AND try_cast(h.contact_ts_local AS TIMESTAMP) IS NOT NULL
+                """)
+            if "benchmark_insolvency_cases" in source_views:
+                con.execute("""
+                    CREATE TEMP TABLE benchmark_insolvency_cases AS
+                    SELECT masked_case.golden_id,
+                           c.outcome IS NULL AS is_open,
+                           coalesce(try_cast(c.insolvency_hold_flag AS BOOLEAN), false) AS insolvency_hold,
+                           coalesce(try_cast(c.total_overdue AS DOUBLE), 0.0) AS overdue_amount
+                    FROM c360_source.raw.collections_cases c
+                    LEFT JOIN cases masked_case ON masked_case.case_id = c.case_id
+                """)
         con.execute("SET enable_external_access=false")
         return con.execute(sql).fetchdf()
     finally: con.close()
@@ -843,6 +997,20 @@ def _policy_hit_covers_requested_detail(question, text):
         r"\b(verify|verification|check|proof|evidence|authori[sz]ed|authority)\b",
         text,
         re.I,
+    ):
+        return False
+    asks_for_calling_hours = (
+        re.search(r"\b(hours?|sundays?)\b", question, re.I)
+        and re.search(r"\b(calls?|contact)\b", question, re.I)
+    )
+    if asks_for_calling_hours and not re.search(r"\b\d{1,2}:\d{2}\b", text):
+        return False
+    if re.search(r"\bsundays?\b", question, re.I) and re.search(
+        r"\b(calls?|contact)\b", question, re.I
+    ) and not re.search(
+        r"\bsunday\b.{0,120}\b\d{1,2}:\d{2}\s*[-–]\s*\d{1,2}:\d{2}",
+        text,
+        re.I | re.S,
     ):
         return False
     return True
@@ -1004,8 +1172,12 @@ class QA:
             )
             if not hits: return self._refuse(q, "no relevant notes were found, so I can't answer this reliably", None, "text")
             if policy_intent:
-                hit = hits[0]
-                if not _policy_hit_covers_requested_detail(q, hit["text"]):
+                hit = next(
+                    (candidate for candidate in hits
+                     if _policy_hit_covers_requested_detail(q, candidate["text"])),
+                    None,
+                )
+                if hit is None:
                     return self._refuse(
                         q,
                         "the current policy source does not specify the requested verification steps",

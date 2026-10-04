@@ -95,6 +95,28 @@ tables:
       agent_site: Agent site or self_serve for promises without an agent site
       test_cell: Experimental strategy assignment cell
       assignment_method: Case assignment method; only random assignments support unbiased strategy comparisons
+  benchmark_promise_channels:
+    description: Minimal promise outcomes joined to the exact originating contact channel; generated as a read-only local projection for channel-grouped promise rates.
+    columns:
+      golden_id: Customer key used only for role scoping
+      due_date: Date the promise was due
+      status: Normalized observed promise outcome
+      channel: Channel on the contact that created the promise
+  benchmark_payment_links:
+    description: Minimal payment-link send events from SMS/email contact history; generated as a read-only local projection for click-rate aggregates.
+    columns:
+      golden_id: Customer key used only for role scoping
+      contact_date: Local date the message was sent
+      channel: Normalized contact channel
+      payment_link_id: Internal link key used only for distinct-link aggregation
+      link_clicked: Whether the associated payment link was clicked
+  benchmark_insolvency_cases:
+    description: Minimal insolvency hold and overdue facts joined to masked cases; generated as a read-only local projection for aggregate reporting.
+    columns:
+      golden_id: Customer key used only for role scoping
+      is_open: True when case outcome is not recorded
+      insolvency_hold: Whether the case is on insolvency hold
+      overdue_amount: Total overdue dollars on the case
   benchmark_cases:
     description: Minimized case facts for aggregate operations metrics; current_bucket is recomputed from current_dpd.
     columns:
@@ -146,6 +168,9 @@ joins:
   - contacts.note_id = notes.note_id
   - customers.golden_id = transcripts.golden_id = bureau_scores.golden_id
   - benchmark_promises.test_cell and benchmark_promises.assignment_method are copied from the related case; benchmark_promises.agent_site is sourced from the assigned agent
+  - benchmark_promise_channels joins promises_to_pay to contact_history by contact_id and to masked promises by ptp_id
+  - benchmark_payment_links joins contact_history to masked contacts by contact_id for role scoping
+  - benchmark_insolvency_cases joins collections_cases to masked cases by case_id for role scoping
   - benchmark_account_history.account_key joins snapshots of the same account only
 terms:
   delinquent: days_past_due > 0 on any account
@@ -167,6 +192,10 @@ terms:
   hardship customer: customers.hardship_flag = true
 policy_precedence: [POL-COLL-004, HPT-2026, POL-COLL-001, PRC-COLL-012, PRC-COLL-010, FAQ-COLL-001]
 retrieval_expansions:
+  income evidence: POL-COLL-004 section 4.3 income evidence programme duration three months evidence income expenses
+  hours may we: POL-COLL-001 section 5.1 permitted local contact hours Sunday time window
+  sunday: POL-COLL-001 section 5.1 permitted local contact hours Sunday time window
+  calling hours: POL-COLL-001 section 5.1 permitted local contact hours Sunday time window
   reduced hours: financial hardship reduced hours acknowledge record eligible hardship option before asking for payment
   hours were cut: financial hardship reduced hours acknowledge record eligible hardship option before asking for payment
   hours cut: financial hardship reduced hours acknowledge record eligible hardship option before asking for payment
@@ -211,6 +240,9 @@ forbidden_columns: [gender, gender_code, marital_status, citizenship, citizenshi
                     newcomer, newcomer_program_flag, accessibility, accessibility_needs_flag,
                     vulnerability, vulnerability_flag, accent, location, postal_code,
                     first_name, last_name, dob, date_of_birth, email, phone, national_id_hash, nid]
+protected_proxy_terms: [religion, religious, faith, church, mosque, temple, synagogue, gurdwara,
+                        worship, "place of worship", "religious belief", "religious affiliation",
+                        "faith-based", congregation, spirituality, spiritual]
 vocabulary: [customer, borrower, collector, installment, account, loan, card, deposit, promise, payment commitment, case, overdue, delinquen, balance, contact, call, attempt, note, hardship, affordability, agent,
              collection, payment, arrears, past due, dpd, cure, recovery, channel, contact method, consent, bureau, score, segment, queue, team, escalat, sms, email, transcript, recording, risk,
              dispute, complaint, fee, hour, hours, province, bucket, delinquency band, product, site, branch, rate, percentage, percent, proportion, fraction, share, programme, program, strategy, randomised, randomized,
