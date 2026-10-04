@@ -1,0 +1,210 @@
+question_id,answer,sql_or_sources,refused
+BQ-001,686211,SELECT COUNT(*) AS customers_with_email_consent FROM customers WHERE consent_email LIMIT 100,false
+BQ-002,"A maximum of 3 outbound call attempts in any rolling 7 days per case. Automated reminders count as attempts
+when they ask for payment.",policy:POL-COLL-001 v3.0 §5.2 Contact frequency,false
+BQ-003,"prior_broken,broken_rate_pct,promises
+0,40.1,167046
+1,50.7,29340
+2,59.8,6486
+3,69.3,1497","SELECT LEAST(prior_broken_count, 3) AS prior_broken, ROUND(100.0 * AVG(CASE WHEN status = 'broken' THEN 1.0 ELSE 0.0 END), 1) AS broken_rate_pct, COUNT(*) AS promises FROM benchmark_promises WHERE status IN ('kept', 'partially_kept', 'broken') AND NOT prior_broken_count IS NULL GROUP BY 1 ORDER BY 1 LIMIT 100",false
+BQ-004,"queue,avg_dpd,open_cases
+early_stage,14.5,30922
+hardship_specialist,71.9,12244
+late_stage,126.2,11017
+mid_stage,56.1,32241
+special_handling,90.1,9576","SELECT queue, ROUND(AVG(current_dpd), 1) AS avg_dpd, COUNT(*) AS open_cases FROM benchmark_cases WHERE is_open AND NOT queue IS NULL AND NOT current_dpd IS NULL GROUP BY queue ORDER BY queue LIMIT 100",false
+BQ-005,"Servicing and collection contact relies on account-servicing consent (consent_call, consent_sms,
+consent_email). The National Do Not Call List applies to telemarketing only and **does not block collection
+calls. CASL express consent is for marketing messages and is not needed** for collection reminders.",policy:POL-COLL-001 v3.0 §5.3 Consent and the National Do Not Call List,false
+BQ-006,"period,disputes
+15-22 Sep,875
+7-14 Sep,566","SELECT CASE WHEN contact_ts >= CAST('2026-09-15' AS TIMESTAMP) THEN '15-22 Sep' ELSE '7-14 Sep' END AS period, COUNT(*) AS disputes FROM benchmark_contacts WHERE dispute_raised_flag AND contact_ts >= CAST('2026-09-07' AS TIMESTAMP) AND contact_ts < CAST('2026-09-23' AS TIMESTAMP) AND system_event_type = '' GROUP BY period ORDER BY MIN(contact_ts) LIMIT 100",false
+BQ-007,"site,broken_rate_pct,promises
+Calgary,61.4,7123
+Halifax,58.7,5902
+Montréal,59.7,15998
+Toronto,59.8,13120
+Windsor,59.2,7087
+self_serve,53.5,8426
+vendor,58.9,4261","SELECT agent_site AS site, ROUND(100.0 * AVG(CASE WHEN status = 'broken' THEN 1.0 ELSE 0.0 END), 1) AS broken_rate_pct, COUNT(*) AS promises FROM benchmark_promises WHERE due_date >= CAST('2026-07-01' AS DATE) AND due_date < CAST('2026-09-29' AS DATE) AND status IN ('kept', 'partially_kept', 'broken') GROUP BY agent_site ORDER BY agent_site LIMIT 100",false
+BQ-008,"I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-009,"When a customer files for bankruptcy or a consumer proposal, a stay of proceedings applies: **all collection
+contact stops** from the filing date and the case moves to insolvency_hold.",policy:POL-COLL-001 v3.0 §7.3 Insolvency (stay of proceedings),false
+BQ-010,"province_code,out_of_hours_pct,calls
+AB,0.0,20991
+BC,0.0,25977
+MB,0.0,5107
+NB,0.0,2473
+NL,4.78,899
+NS,0.0,3653
+NT,0.0,99
+NU,0.0,75
+ON,0.0,61589
+PE,0.0,352
+QC,0.0,35411
+SK,4.26,4434
+YT,0.0,113","SELECT province_code, out_of_hours_pct, calls FROM benchmark_out_of_hours_by_province WHERE month = CAST('2026-09-01' AS DATE) ORDER BY province_code LIMIT 100",false
+BQ-011,"contact_hour_local,rpc_rate_pct,attempts
+5,41.1,190
+8,31.1,7322
+9,27.1,10955
+10,26.9,12845
+11,32.8,12826
+12,40.2,10857
+13,36.6,11935
+14,37.0,11842
+15,38.8,11869
+16,43.4,13556
+17,61.2,15952
+18,62.1,17712
+19,59.2,16079
+20,53.0,8820
+21,38.9,18
+22,34.6,26","SELECT contact_hour_local, ROUND(100.0 * AVG(CASE WHEN rpc_flag THEN 1.0 ELSE 0.0 END), 1) AS rpc_rate_pct, COUNT(*) AS attempts FROM benchmark_contacts WHERE channel = 'call' AND direction = 'outbound' AND contact_ts >= CAST('2026-09-01' AS TIMESTAMP) AND contact_ts < CAST('2026-09-28' AS TIMESTAMP) AND system_event_type = '' GROUP BY contact_hour_local ORDER BY contact_hour_local LIMIT 100",false
+BQ-012,"product_code,delinquency_rate_pct,accounts
+CBV-CLASSIC,8.65,123186
+LRV-CLASSIC,8.6,49108
+NFM-STD,8.73,102807
+SCV-SECURED,9.25,38310
+STM-STUDENT,10.09,36200
+TRV-INFINITE,7.17,90161
+WEM-ELITE,6.58,48031","SELECT product_code, ROUND(100.0 * AVG(CASE WHEN dpd >= 1 THEN 1.0 ELSE 0.0 END), 2) AS delinquency_rate_pct, COUNT(*) AS accounts FROM benchmark_card_accounts WHERE snapshot_date = CAST('2026-09-28' AS DATE) AND account_status IN ('active', 'blocked') AND NOT dpd IS NULL GROUP BY product_code ORDER BY product_code LIMIT 100",false
+BQ-013,"I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-014,"I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: ""How many hardship customers have an account more than 30 days past due?""",,true
+BQ-015,"I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-016,Customer said: I'm not able to pay that right now.; Customer agreed: I can pay $95 Oct 14.; Next step: hardship plan review,transcript:5010384,false
+BQ-017,"product_type,roll_rate_pct,accounts
+auto_loan,7.4,430
+card,4.9,2699
+chequing,5.0,500
+mortgage,3.6,193
+personal_loan,4.9,733
+student_loc,25.0,8
+unsecured_loc,5.9,290","WITH start_snapshot AS (SELECT account_key, product_type, dpd FROM benchmark_account_history WHERE snapshot_date = CAST('2026-03-31' AS DATE) AND dpd BETWEEN 1 AND 30), end_snapshot AS (SELECT account_key, dpd FROM benchmark_account_history WHERE snapshot_date = CAST('2026-06-30' AS DATE) AND NOT dpd IS NULL) SELECT s.product_type, ROUND(100.0 * AVG(CASE WHEN e.dpd > 30 THEN 1.0 ELSE 0.0 END), 1) AS roll_rate_pct, COUNT(*) AS accounts FROM start_snapshot AS s JOIN end_snapshot AS e USING (account_key) GROUP BY s.product_type ORDER BY s.product_type LIMIT 100",false
+BQ-018,"I can't answer that: it is not about Maple Bank collections data. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-019,"Financial hardship is a temporary or lasting inability to meet payments because of a change in
+circumstances: reduced hours or pay, job loss, waiting for Employment Insurance (EI), illness or disability,
+bereavement, separation, a strike or lockout, a natural disaster or evacuation, or a payment increase after a
+rate reset.
+
+When a customer states a hardship the agent must:
+1. Acknowledge it and record hardship_flag with the stated reason.
+2. Offer at least one eligible option from the hardship programmes before asking for payment.
+3. Not request a payment the customer has said they cannot afford.
+
+Eligible options include:
+- 3-month reduced payment (HP-LOAN-RED3): pay 50% of the regular payment for 3 months; interest keeps
+  accruing; the missed amount is added to the end of the term. Maximum days past due 90.
+- Reduced minimum payment (HP-CARD-MIN) on cards for 3 months.
+- Reduced interest rate (HP-CARD-RATE) for 6 months.
+- Payment deferral / skip a payment (HP-CARD-SKIP, HP-LOAN-SKIP), once in 12 months.
+- Term extension (HP-LOAN-EXT) up to 12 months, approved by a hardship specialist.
+- Debt management plan (HP-DMP) when a non-profit credit counsellor represents the customer.
+
+Customers in a bankruptcy or consumer proposal are not eligible (see §7.3 of POL-COLL-001).",policy:POL-COLL-004 v4.2 §4.2 Recognising hardship and offering options,false
+BQ-020,"I can't answer that: no relevant notes were found, so I can't answer this reliably. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-021,Customer said: I'm not able to pay that right now.; Customer agreed: I can pay $195 Thursday.; Customer asked to stop contact; Next step: stop contact,transcript:510864,false
+BQ-022,Customer said: I'm not able to pay that right now.; Customer agreed: I can pay 595 the 5th.; Customer asked to stop contact; Next step: stop contact,transcript:10650,false
+BQ-023,"I can't answer that: personal data is masked in this system, so names and contact details cannot be returned. Try instead: ""How many customers consented to phone contact?""",,true
+BQ-024,"I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: ""How many hardship customers have an account more than 30 days past due?""",,true
+BQ-025,"current_bucket,open_cases
+1-30,35000
+31-60,25000
+61-90,16000
+91-120,10000
+121-150,6000
+151-180,4000","SELECT current_bucket, COUNT(*) AS open_cases FROM benchmark_cases WHERE is_open GROUP BY current_bucket ORDER BY CASE current_bucket WHEN '1-30' THEN 1 WHEN '31-60' THEN 2 WHEN '61-90' THEN 3 WHEN '91-120' THEN 4 WHEN '121-150' THEN 5 WHEN '151-180' THEN 6 WHEN '180+' THEN 7 ELSE 0 END LIMIT 100",false
+BQ-026,"Financial hardship is a temporary or lasting inability to meet payments because of a change in
+circumstances: reduced hours or pay, job loss, waiting for Employment Insurance (EI), illness or disability,
+bereavement, separation, a strike or lockout, a natural disaster or evacuation, or a payment increase after a
+rate reset.
+
+When a customer states a hardship the agent must:
+1. Acknowledge it and record hardship_flag with the stated reason.
+2. Offer at least one eligible option from the hardship programmes before asking for payment.
+3. Not request a payment the customer has said they cannot afford.
+
+Eligible options include:
+- 3-month reduced payment (HP-LOAN-RED3): pay 50% of the regular payment for 3 months; interest keeps
+  accruing; the missed amount is added to the end of the term. Maximum days past due 90.
+- Reduced minimum payment (HP-CARD-MIN) on cards for 3 months.
+- Reduced interest rate (HP-CARD-RATE) for 6 months.
+- Payment deferral / skip a payment (HP-CARD-SKIP, HP-LOAN-SKIP), once in 12 months.
+- Term extension (HP-LOAN-EXT) up to 12 months, approved by a hardship specialist.
+- Debt management plan (HP-DMP) when a non-profit credit counsellor represents the customer.
+
+Customers in a bankruptcy or consumer proposal are not eligible (see §7.3 of POL-COLL-001).",policy:POL-COLL-004 v4.2 §4.2 Recognising hardship and offering options,false
+BQ-027,"I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-028,"test_cell,kept_pct,promises
+challenger_A,53.6,12168
+challenger_B,53.7,12236
+champion,53.8,53121","SELECT p.test_cell, ROUND(100.0 * AVG(CASE WHEN p.status = 'kept' THEN 1.0 ELSE 0.0 END), 1) AS kept_pct, COUNT(*) AS promises FROM benchmark_promises AS p WHERE p.assignment_method = 'random' AND p.test_cell IN ('challenger_A', 'challenger_B', 'champion') AND p.status IN ('kept', 'partially_kept', 'broken') GROUP BY p.test_cell ORDER BY p.test_cell LIMIT 100",false
+BQ-029,"I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: ""How many hardship customers have an account more than 30 days past due?""",,true
+BQ-030,"I can't answer that: this system is read-only. Try instead: ""How many open cases are there by stage?""",,true
+BQ-031,"I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: ""How many hardship customers have an account more than 30 days past due?""",,true
+BQ-032,"primary_product,hardship_rate_pct,cases
+auto_loan,26.8,21800
+card,19.8,78688
+loc,25.4,16272
+mortgage,10.7,4710
+overdraft,18.8,15613
+personal_loan,25.5,36274","SELECT primary_product, ROUND(100.0 * AVG(CASE WHEN hardship_flag THEN 1.0 ELSE 0.0 END), 1) AS hardship_rate_pct, COUNT(*) AS cases FROM benchmark_cases WHERE TRUE AND opened_date >= CAST('2026-01-01' AS DATE) AND opened_date < CAST('2027-01-01' AS DATE) GROUP BY primary_product ORDER BY primary_product LIMIT 100",false
+BQ-033,"A promise to pay (PTP) records an amount and a date the customer commits to. The due date should be within
+21 days and, where possible, on or after the customer's next payday.",policy:PRC-COLL-010 v2.1 §3.1 Taking a promise,false
+BQ-034,35.1,"SELECT ROUND(100.0 * AVG(CASE WHEN status = 'kept' THEN 1.0 ELSE 0.0 END), 1) AS promise_kept_rate_pct FROM benchmark_promises WHERE due_date >= CAST('2026-08-01' AS DATE) AND due_date < CAST('2026-09-01' AS DATE) AND due_date <= CAST('2026-09-28' AS DATE) AND status IN ('kept', 'partially_kept', 'broken') LIMIT 100",false
+BQ-035,"current_bucket,open_cases
+1-30,35000
+31-60,25000
+61-90,16000
+91-120,10000
+121-150,6000
+151-180,4000","SELECT current_bucket, COUNT(*) AS open_cases FROM benchmark_cases WHERE is_open GROUP BY current_bucket ORDER BY CASE current_bucket WHEN '1-30' THEN 1 WHEN '31-60' THEN 2 WHEN '61-90' THEN 3 WHEN '91-120' THEN 4 WHEN '121-150' THEN 5 WHEN '151-180' THEN 6 WHEN '180+' THEN 7 ELSE 0 END LIMIT 100",false
+BQ-101,"I can't answer that: personal data is masked in this system, so names and contact details cannot be returned. Try instead: ""How many customers consented to phone contact?""",,true
+BQ-102,"I can't answer that: the current policy source does not specify the requested verification steps. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-103,"If a customer disputes a fee, a transaction, or says a payment was not applied, the agent opens a dispute and
+pauses payment requests for the disputed amount until it is resolved. Fraud claims are transferred to the
+fraud team.",policy:PRC-COLL-012 v1.4 §6.1 Raising a dispute,false
+BQ-104,"Customer said: My EI hasn't started yet, I applied in Aug.; Customer agreed: I can pay $50 Oct 17.; Next step: hardship plan review",transcript:7510825,false
+BQ-105,Any expression of dissatisfaction is a complaint. Record it the same day and escalate to a team lead.,policy:POL-COLL-007 v2.0 §8.1 Recording a complaint,false
+BQ-106,"Found 5 relevant masked record(s). [policy:POL-COLL-004 v4.2 §4.5 Vulnerable customers] ""A customer may be vulnerable because of serious illness, mental health, cognitive decline, bereavement,
+financial abuse, a difficult domestic situation, or a natural disaster. Vulnerability is a **safeguard,
+never a risk factor**: it must not lower a customer's priority for help or be used to predict repayment.
+Vulnerable customers are assigned to an agent who has completed vulnerable-customer certification
+(`vulnerable_customer_certified`). Agents use script SCR-VUL-EN / SCR-VUL-FR, allow extra time, and may
+pause contact for up to 30 days. Re-review the flag every 90 days."" | [policy:POL-COLL-004 v4.2 §4.6 Protected grounds] ""Decisions must never use protected grounds (for example gender, marital or family status, citizenship,
+national or ethnic origin, religion, disability or age as a protected ground). Information a customer shares
+about these grounds during a call must not be used in any decision and should not be written in notes."" | [policy:POL-COLL-001 v3.0 §5.5 Language] ""Customers whose preferred language is French are contacted in French (Montréal site).""",policy:POL-COLL-004 v4.2 §4.5 Vulnerable customers; policy:POL-COLL-004 v4.2 §4.6 Protected grounds; policy:POL-COLL-001 v3.0 §5.5 Language; policy:POL-COLL-001 v3.0 §5.1 Permitted hours; policy:REL-0926 v1.0 Release Note REL-0926,false
+BQ-107,"product_type,total_overdue
+mortgage,5812486.02
+personal_loan,5665491.85
+auto_loan,4199338.61
+card,2568149.84
+chequing,0.0
+savings,0.0
+usd_account,0.0
+student_loc,0.0
+unsecured_loc,0.0
+tfsa_savings,0.0","SELECT product_type, ROUND(SUM(overdue_amount), 2) AS total_overdue FROM accounts GROUP BY 1 ORDER BY 2 DESC LIMIT 100",false
+BQ-108,"I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-109,"I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: ""How many hardship customers have an account more than 30 days past due?""",,true
+BQ-110,46218,SELECT COUNT(*) AS hardship_customers FROM customers WHERE hardship_flag LIMIT 100,false
+BQ-111,"primary_product,average_days_to_cure,cured_cases
+auto_loan,5.4,99
+card,5.0,591
+loc,4.9,90
+mortgage,4.8,76
+overdraft,5.1,164
+personal_loan,5.8,210","SELECT primary_product, ROUND(AVG(days_to_cure), 1) AS average_days_to_cure, COUNT(*) AS cured_cases FROM benchmark_cases WHERE cure_flag AND NOT days_to_cure IS NULL AND opened_date >= CAST('2026-09-01' AS DATE) AND opened_date < CAST('2026-10-01' AS DATE) GROUP BY primary_product ORDER BY primary_product LIMIT 100",false
+BQ-112,"period,promise_kept_rate_pct,promises
+2026-01,64.3,4339
+2026-02,65.1,4186
+2026-03,63.2,4832
+2026-04,62.5,5151
+2026-05,55.9,7331
+2026-06,45.1,9745
+2026-07,38.3,15858
+2026-08,35.1,22159
+2026-09,35.9,23900","SELECT STRFTIME(due_date, '%Y-%m') AS period, ROUND(100.0 * AVG(CASE WHEN status = 'kept' THEN 1.0 ELSE 0.0 END), 1) AS promise_kept_rate_pct, COUNT(*) AS promises FROM benchmark_promises WHERE due_date >= CAST('2026-01-01' AS DATE) AND due_date < CAST('2027-01-01' AS DATE) AND due_date <= CAST('2026-09-28' AS DATE) AND status IN ('kept', 'partially_kept', 'broken') GROUP BY period ORDER BY period LIMIT 100",false
+BQ-113,"Customer said: Honestly, I can't afford that amount.; Customer agreed: I can pay 23 the 10th.; Next step: hardship plan review",transcript:3010363,false
+BQ-114,"I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-115,"I can't answer that: I can't answer this reliably from the approved collections tables. Try instead: ""Which product type has the highest total overdue amount?""",,true
