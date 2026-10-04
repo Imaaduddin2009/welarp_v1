@@ -29,6 +29,28 @@ def _csv(path: Path) -> str:
     return f"read_csv('{_sql_path(path)}', header=true, all_varchar=true, sample_size=10000)"
 
 
+def _project_customer_identity(source_path: Path, output_path: Path) -> int:
+    """Stream only columns needed by identity matching and name masking to a narrow CSV."""
+    columns = (
+        "crm_customer_id", "national_id_hash", "first_name", "last_name",
+        "date_of_birth", "email", "primary_phone_e164", "primary_phone_raw",
+        "postal_code", "postal_code_raw",
+    )
+    rows = 0
+    with source_path.open(newline="", encoding="utf-8-sig") as source, \
+            output_path.open("w", newline="", encoding="utf-8") as output:
+        reader = csv.DictReader(source)
+        missing = set(columns) - set(reader.fieldnames or ())
+        if missing:
+            raise ValueError(f"Customer source is missing identity columns: {sorted(missing)}")
+        writer = csv.DictWriter(output, fieldnames=columns)
+        writer.writeheader()
+        for row in reader:
+            writer.writerow({column: row.get(column, "") or "" for column in columns})
+            rows += 1
+    return rows
+
+
 def _masked_text_sql(
     text_expression: str, person_alias: str, email_pattern: str, phone_pattern: str
 ) -> str:
@@ -192,6 +214,12 @@ def build_maple_layer1(data_dir: str | Path, c360_path: str | Path, l2_path: str
     os.close(documents_fd)
     documents_csv = Path(documents_name)
     documents_csv.unlink()
+    identity_fd, identity_name = tempfile.mkstemp(
+        prefix="maple_customer_identity_", suffix=".csv", dir=c360_path.parent
+    )
+    os.close(identity_fd)
+    identity_csv = Path(identity_name)
+    identity_csv.unlink()
     con = duckdb.connect(str(c360_build))
     try:
         _flatten_transcripts(data_dir.parent / "files" / "transcripts", transcript_csv)
@@ -202,6 +230,8 @@ def build_maple_layer1(data_dir: str | Path, c360_path: str | Path, l2_path: str
         )
         bronze_tables = _create_bronze_views(con, data_dir)
         customers = _csv(data_dir / "customers.csv")
+        _project_customer_identity(data_dir / "customers.csv", identity_csv)
+        identity_customers = _csv(identity_csv)
         con.execute(f"""
             CREATE TEMP TABLE _crm AS
             SELECT crm_customer_id AS source_id,
@@ -210,7 +240,7 @@ def build_maple_layer1(data_dir: str | Path, c360_path: str | Path, l2_path: str
                    lower(trim(email)) AS email,
                    regexp_replace(coalesce(primary_phone_e164, primary_phone_raw, ''), '[^0-9]', '', 'g') AS phone,
                    upper(regexp_replace(coalesce(postal_code, postal_code_raw, ''), '[^A-Za-z0-9]', '', 'g')) AS postal
-            FROM {customers}
+            FROM {identity_customers}
             WHERE nullif(trim(crm_customer_id), '') IS NOT NULL
         """)
         con.execute("""
@@ -663,6 +693,7 @@ def build_maple_layer1(data_dir: str | Path, c360_path: str | Path, l2_path: str
         con.close()
         transcript_csv.unlink(missing_ok=True)
         documents_csv.unlink(missing_ok=True)
+        identity_csv.unlink(missing_ok=True)
         os.replace(c360_build, c360_path)
         os.replace(l2_build, l2_path)
         _write_reports(counts, dq_rules, c360_path.parent.parent / "submission", data_dir, source_counts)
@@ -673,6 +704,7 @@ def build_maple_layer1(data_dir: str | Path, c360_path: str | Path, l2_path: str
         l2_build.unlink(missing_ok=True)
         transcript_csv.unlink(missing_ok=True)
         documents_csv.unlink(missing_ok=True)
+        identity_csv.unlink(missing_ok=True)
         raise
 
 

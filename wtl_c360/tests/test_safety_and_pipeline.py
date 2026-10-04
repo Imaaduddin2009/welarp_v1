@@ -15,7 +15,10 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import layer2
 import layer4
-from maple_layer1 import _flatten_policy_docs, _flatten_transcripts, _masked_text_sql
+from maple_layer1 import (
+    _flatten_policy_docs, _flatten_transcripts, _masked_text_sql,
+    _project_customer_identity,
+)
 from score_benchmark import normalize_answer
 
 
@@ -220,6 +223,35 @@ def test_transcript_flattener_streams_turns(tmp_path):
     with out_path.open(encoding="utf-8", newline="") as source_file:
         rows = list(csv.DictReader(source_file))
     assert [row["turn_text"] for row in rows] == ["hello", "goodbye"]
+
+
+def test_customer_identity_projection_keeps_required_values_and_discards_other_columns(tmp_path):
+    source = tmp_path / "customers.csv"
+    projected = tmp_path / "customer_identity.csv"
+    source.write_text(
+        "crm_customer_id,national_id_hash,first_name,last_name,date_of_birth,email,"
+        "primary_phone_e164,primary_phone_raw,postal_code,postal_code_raw,unused\n"
+        'C1,N1,Ada,Lovelace,1815-12-10,ada@example.com,+123,123,A1,A1,unused-value\n'
+        'C2,,Grace,Hopper,,, ,456,,B2,other-unused-value\n',
+        encoding="utf-8",
+    )
+
+    count = _project_customer_identity(source, projected)
+
+    with projected.open(newline="", encoding="utf-8") as stream:
+        reader = csv.DictReader(stream)
+        rows = list(reader)
+        fields = reader.fieldnames
+    assert count == 2
+    assert fields == [
+        "crm_customer_id", "national_id_hash", "first_name", "last_name",
+        "date_of_birth", "email", "primary_phone_e164", "primary_phone_raw",
+        "postal_code", "postal_code_raw",
+    ]
+    assert rows[0]["crm_customer_id"] == "C1"
+    assert rows[0]["primary_phone_e164"] == "+123"
+    assert rows[1]["primary_phone_raw"] == "456"
+    assert "unused" not in fields
 
 
 def test_sql_text_mask_removes_names_email_and_phone():

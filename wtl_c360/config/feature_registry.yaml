@@ -20,6 +20,16 @@ features:
     source: accounts
     meaning: Total balance across accounts
     point_in_time_safe: true
+  balance_change_90d:
+    group: overdue
+    source: accounts
+    meaning: Balance change between the latest snapshot and the latest snapshot on or before the 90-day lookback cutoff, for accounts present at both points
+    point_in_time_safe: true
+  max_days_past_due_change_90d:
+    group: overdue
+    source: accounts
+    meaning: Maximum days-past-due change between the latest snapshot and the latest snapshot on or before the 90-day lookback cutoff, for accounts present at both points
+    point_in_time_safe: true
   promises_made_90d:
     group: promise
     source: promises
@@ -79,6 +89,11 @@ features:
     group: context
     source: customers
     meaning: Credit bureau score
+    point_in_time_safe: true
+  bureau_score_change_90d:
+    group: context
+    source: bureau_scores
+    meaning: Change from the latest bureau score to the latest score on or before the 90-day lookback cutoff
     point_in_time_safe: true
   case_stage:
     group: context

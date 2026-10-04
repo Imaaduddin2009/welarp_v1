@@ -8,20 +8,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
-DEFAULT_DATES = [
-    "2026-03-31", "2026-04-30", "2026-05-31",
-    "2026-06-30", "2026-07-31", "2026-08-14",
-]
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train-through", default="2026-06-30")
+    parser.add_argument("--train-through")
     parser.add_argument("--output-dir", type=Path, default=ROOT / "out")
     args = parser.parse_args()
     import layer4
 
-    metrics = layer4.run_model(DEFAULT_DATES, args.train_through, args.output_dir)
+    dates = layer4.discover_as_of_dates()
+    train_through = args.train_through or dates[min(int(len(dates) * 0.7), len(dates) - 2)]
+    metrics = layer4.run_model(dates, train_through, args.output_dir)
     print(f"LightGBM metrics: {metrics['model']}")
     print(f"Logistic baseline metrics: {metrics['logistic_baseline']}")
     print(f"Fairness audit: {metrics['fairness_audit']['available']}")

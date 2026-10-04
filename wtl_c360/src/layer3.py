@@ -26,6 +26,8 @@ REGISTRY = {
   "total_overdue_amount":   ("overdue",  "accounts",  "Total dollars overdue across card, loan and deposit"),
   "n_products_overdue":     ("overdue",  "accounts",  "How many accounts are overdue"),
   "total_balance":          ("overdue",  "accounts",  "Total balance across accounts"),
+  "balance_change_90d":     ("overdue",  "accounts",  "Balance change between the latest snapshot and the latest snapshot on or before the 90-day lookback cutoff, for accounts present at both points"),
+  "max_days_past_due_change_90d": ("overdue", "accounts", "Maximum days-past-due change between the latest snapshot and the latest snapshot on or before the 90-day lookback cutoff, for accounts present at both points"),
   "promises_made_90d":      ("promise",  "promises",  "Promises to pay made in the last 90 days"),
   "promises_broken_90d":    ("promise",  "promises",  "Of those, how many were broken"),
   "promise_kept_rate_90d":  ("promise",  "promises",  "Share of last-90-day promises that were kept (blank if none)"),
@@ -38,6 +40,7 @@ REGISTRY = {
   "consent_phone":          ("contact",  "customers", "Agreed to phone calls"),
   "hardship_flag":          ("context",  "customers", "Officially flagged as financial hardship"),
   "bureau_score":           ("context",  "customers", "Credit bureau score"),
+  "bureau_score_change_90d":("context",  "bureau_scores", "Change from the latest bureau score to the latest score on or before the 90-day lookback cutoff"),
   "case_stage":             ("context",  "cases",     "Delinquency stage of the main case"),
   "case_status":            ("context",  "cases",     "Status of the main case (open, on_hold, disputed...)"),
   "days_case_open":         ("context",  "cases",     "Days since the main case was opened"),
@@ -76,11 +79,26 @@ WITH base AS (  -- one row per customer who had a case by as_of; main case = mos
          DATE '{as_of}' - opened_date AS days_case_open,
          row_number() OVER (PARTITION BY golden_id ORDER BY opened_date DESC, case_id) AS rn
   FROM cases WHERE opened_date <= DATE '{as_of}' {gf}) WHERE rn = 1),
+acc_current AS (
+  SELECT account_id, golden_id, balance, overdue_amount, days_past_due
+  FROM (SELECT *, row_number() OVER (PARTITION BY account_id, golden_id ORDER BY snapshot_date DESC) rn
+        FROM accounts WHERE snapshot_date <= DATE '{as_of}' {gf})
+  WHERE rn = 1),
+acc_prior AS (
+  SELECT account_id, golden_id, balance, days_past_due
+  FROM (SELECT *, row_number() OVER (PARTITION BY account_id, golden_id ORDER BY snapshot_date DESC) rn
+        FROM accounts WHERE snapshot_date <= DATE '{as_of}' - INTERVAL 90 DAY {gf})
+  WHERE rn = 1),
 acc AS (
   SELECT golden_id, max(days_past_due) AS max_days_past_due, round(sum(overdue_amount), 2) AS total_overdue_amount,
          count(*) FILTER (WHERE days_past_due > 0) AS n_products_overdue, round(sum(balance), 2) AS total_balance
-  FROM (SELECT *, row_number() OVER (PARTITION BY account_id, golden_id ORDER BY snapshot_date DESC) rn FROM accounts WHERE snapshot_date <= DATE '{as_of}' {gf})
-  WHERE rn = 1 GROUP BY 1),
+  FROM acc_current GROUP BY 1),
+acc_delta AS (
+  SELECT current.golden_id,
+         round(sum(current.balance - prior.balance), 2) AS balance_change_90d,
+         max(current.days_past_due) - max(prior.days_past_due) AS max_days_past_due_change_90d
+  FROM acc_current current JOIN acc_prior prior USING (account_id, golden_id)
+  GROUP BY current.golden_id),
 pr AS (
   SELECT golden_id, count(*) AS promises_made_90d,
          count(*) FILTER (WHERE status = 'BROKEN' AND status_date < DATE '{as_of}') AS promises_broken_90d,
@@ -109,6 +127,18 @@ br AS (
     FROM bureau_scores WHERE score_date <= DATE '{as_of}' {gf} GROUP BY 1
   ) latest USING (golden_id, score_date)
   GROUP BY s.golden_id),
+br_prior AS (
+  SELECT s.golden_id, avg(s.bureau_score) AS bureau_score
+  FROM bureau_scores s
+  JOIN (
+    SELECT golden_id, max(score_date) AS score_date
+    FROM bureau_scores WHERE score_date <= DATE '{as_of}' - INTERVAL 90 DAY {gf} GROUP BY 1
+  ) prior USING (golden_id, score_date)
+  GROUP BY s.golden_id),
+br_delta AS (
+  SELECT current.golden_id,
+         current.bureau_score - prior.bureau_score AS bureau_score_change_90d
+  FROM br current JOIN br_prior prior USING (golden_id)),
 tx AS (
   SELECT n.golden_id, {txt}
   FROM (
@@ -119,6 +149,7 @@ tx AS (
   ) n GROUP BY 1)
 SELECT b.golden_id, DATE '{as_of}' AS as_of,
   a.max_days_past_due, a.total_overdue_amount, a.n_products_overdue, a.total_balance,
+  ad.balance_change_90d, ad.max_days_past_due_change_90d,
   coalesce(p.promises_made_90d, 0) AS promises_made_90d, coalesce(p.promises_broken_90d, 0) AS promises_broken_90d,
   p.promise_kept_rate_90d, p.days_since_last_promise,
   coalesce(k.contact_attempts_14d, 0) AS contact_attempts_14d, k.last_contact_outcome, h.best_channel,
@@ -126,11 +157,15 @@ SELECT b.golden_id, DATE '{as_of}' AS as_of,
   CASE WHEN cu.consent_as_of_date <= DATE '{as_of}' THEN cu.consent_email END AS consent_email,
   CASE WHEN cu.consent_as_of_date <= DATE '{as_of}' THEN cu.consent_phone END AS consent_phone,
   coalesce(hf.hardship_flag, cu.hardship_flag) AS hardship_flag, br.bureau_score,
+  bd.bureau_score_change_90d,
   b.case_stage, b.case_status, b.days_case_open,
   {", ".join(f"coalesce(t.{k}, false) AS {k}" for k in TEXT_RULES)},
   (NOT coalesce(hf.hardship_flag, cu.hardship_flag) AND (coalesce(t.txt_job_loss,false) OR coalesce(t.txt_medical,false) OR coalesce(t.txt_struggling,false))) AS hardship_review_needed
 FROM base b JOIN customers cu USING (golden_id)
-LEFT JOIN acc a USING (golden_id) LEFT JOIN pr p USING (golden_id) LEFT JOIN ct k USING (golden_id) LEFT JOIN ch h USING (golden_id) LEFT JOIN hf USING (golden_id) LEFT JOIN br USING (golden_id) LEFT JOIN tx t USING (golden_id)
+LEFT JOIN acc a USING (golden_id) LEFT JOIN acc_delta ad USING (golden_id)
+LEFT JOIN pr p USING (golden_id) LEFT JOIN ct k USING (golden_id) LEFT JOIN ch h USING (golden_id)
+LEFT JOIN hf USING (golden_id) LEFT JOIN br USING (golden_id) LEFT JOIN br_delta bd USING (golden_id)
+LEFT JOIN tx t USING (golden_id)
 ORDER BY b.golden_id"""
 
 def compute(as_of=SNAPSHOT_DATE, golden_ids=None):
@@ -199,6 +234,7 @@ def test_parity(n=25):
 def test_point_in_time(as_of):
     """Independently recompute temporal features from records available before as_of."""
     con = duckdb.connect(SRC, read_only=True); pr = con.execute("SELECT golden_id, promised_date, status_date, status FROM promises").fetchdf()
+    accounts = con.execute("SELECT account_id, golden_id, snapshot_date, balance, days_past_due FROM accounts").fetchdf()
     ct = con.execute("SELECT golden_id, contact_date FROM contacts").fetchdf()
     hf = con.execute("SELECT golden_id, opened_date, hardship_start_date, hardship_flag FROM cases").fetchdf()
     br = con.execute("SELECT golden_id, score_date, bureau_score FROM bureau_scores").fetchdf()
@@ -206,6 +242,7 @@ def test_point_in_time(as_of):
     con.close()
     t = pd.Timestamp(as_of); X = compute(as_of).set_index("golden_id")
     pr["promised_date"] = pd.to_datetime(pr.promised_date); pr["status_date"] = pd.to_datetime(pr.status_date)
+    accounts["snapshot_date"] = pd.to_datetime(accounts.snapshot_date)
     ct["contact_date"] = pd.to_datetime(ct.contact_date)
     hf["opened_date"] = pd.to_datetime(hf.opened_date)
     hf["hardship_start_date"] = pd.to_datetime(hf.hardship_start_date)
@@ -226,6 +263,31 @@ def test_point_in_time(as_of):
     b = recent_bureau[
         recent_bureau.score_date.eq(recent_bureau.golden_id.map(latest_bureau_dates))
     ].groupby("golden_id").bureau_score.mean()
+    account_current = accounts[accounts.snapshot_date <= t].sort_values("snapshot_date").drop_duplicates(
+        ["account_id", "golden_id"], keep="last"
+    )
+    account_prior = accounts[accounts.snapshot_date <= t - pd.Timedelta(days=90)].sort_values(
+        "snapshot_date"
+    ).drop_duplicates(["account_id", "golden_id"], keep="last")
+    account_pairs = account_current.merge(
+        account_prior, on=["account_id", "golden_id"], suffixes=("_current", "_prior")
+    )
+    account_deltas = account_pairs.assign(
+        balance_change_90d=lambda rows: rows.balance_current - rows.balance_prior,
+    ).groupby("golden_id").agg(
+        balance_change_90d=("balance_change_90d", "sum"),
+        current_max_dpd=("days_past_due_current", "max"),
+        prior_max_dpd=("days_past_due_prior", "max"),
+    )
+    account_deltas["max_days_past_due_change_90d"] = (
+        account_deltas.current_max_dpd - account_deltas.prior_max_dpd
+    )
+    older_bureau = recent_bureau[recent_bureau.score_date <= t - pd.Timedelta(days=90)]
+    older_dates = older_bureau.groupby("golden_id").score_date.max()
+    older_scores = older_bureau[
+        older_bureau.score_date.eq(older_bureau.golden_id.map(older_dates))
+    ].groupby("golden_id").bureau_score.mean()
+    bureau_delta = b - older_scores
     consent = cu.set_index("golden_id")
     consent_is_known = consent.consent_as_of_date <= t
     same = lambda actual, expected: (actual.eq(expected) | (actual.isna() & expected.isna())).all()
@@ -238,7 +300,16 @@ def test_point_in_time(as_of):
     ok7 = same(X.consent_sms, consent.consent_sms.reindex(X.index).where(consent_is_known.reindex(X.index)))
     ok8 = same(X.consent_email, consent.consent_email.reindex(X.index).where(consent_is_known.reindex(X.index)))
     ok9 = same(X.consent_phone, consent.consent_phone.reindex(X.index).where(consent_is_known.reindex(X.index)))
-    assert all((ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9)), "point-in-time mismatch"
+    ok10 = same(
+        X.balance_change_90d,
+        account_deltas.balance_change_90d.reindex(X.index).round(2),
+    )
+    ok11 = same(
+        X.max_days_past_due_change_90d,
+        account_deltas.max_days_past_due_change_90d.reindex(X.index),
+    )
+    ok12 = same(X.bureau_score_change_90d, bureau_delta.reindex(X.index))
+    assert all((ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9, ok10, ok11, ok12)), "point-in-time mismatch"
     return f"as_of {as_of}: promises, contacts, hardship, bureau and consent features match prior-date recomputations"
 
 
