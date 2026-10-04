@@ -1,0 +1,369 @@
+contract_id: DC-COLL-001-golden-c360
+owner: Collections Data Office
+source_contract: data/files/docs/data_contracts/DC-COLL-001_v1.0_EN.md
+refresh:
+  cadence: daily
+  source_snapshot_date: '2026-09-28'
+retention: Apply source-system retention schedules; retain crosswalk decisions and
+  audit evidence per policy.
+allowed_uses:
+- collections operations
+- analytics
+- model training with approved feature controls
+prohibited_uses:
+- marketing
+- protected-attribute or proxy-based decisions
+- unmasked PII to an LLM
+schema:
+  customers:
+  - golden_id
+  - language
+  - segment
+  - hardship_flag
+  - consent_sms
+  - consent_email
+  - consent_phone
+  - bureau_score
+  accounts:
+  - account_id
+  - golden_id
+  - product_type
+  - balance
+  - overdue_amount
+  - days_past_due
+  - snapshot_date
+  cases:
+  - case_id
+  - golden_id
+  - status
+  - stage
+  - opened_date
+  - product_type
+  promises:
+  - ptp_id
+  - case_id
+  - golden_id
+  - promised_date
+  - status
+  contacts:
+  - contact_id
+  - case_id
+  - golden_id
+  - channel
+  - contact_date
+  - outcome
+  - note_id
+  notes:
+  - note_id
+  - golden_id
+  - note_text_masked
+  transcripts:
+  - transcript_id
+  - contact_id
+  - case_id
+  - golden_id
+  - agent_id
+  - call_start_ts
+  - transcript_text_masked
+  bureau_scores:
+  - golden_id
+  - score_date
+  - bureau_score
+  policy_chunks:
+  - chunk_id
+  - doc_id
+  - title
+  - version
+  - effective_date
+  - section
+  - source_path
+  - content
+  crosswalk:
+  - source_system
+  - source_id
+  - golden_id
+  - match_confidence
+  - rule_used
+sensitivity_inventory: sensitivity_inventory.csv; all source columns are deny-by-default
+data_semantics:
+  overdue_amount: 'Estimate: max(minimum_due - payment_made, 0) for DPD > 0, capped
+    at max(balance, 0); not a source field.'
+  negative_balance: Retained as a valid net-credit balance; estimated overdue is zero.
+  contact_exclusions: System events, invalid timestamps, and empty CRM references
+    are excluded from curated agent contacts and counted in DQ exclusions.
+known_limitations:
+- Cross-system identity candidates use a custom DOB/name/phone/postal blocking and
+  score; scores are not calibrated probabilities.
+- Ambiguous cross-system candidates are isolated pending steward review; the observed
+  review queue is large.
+- The synthetic release has no labeled identity ground truth; match precision/recall
+  cannot be measured.
+- Text privacy masking is regex-based and should be reviewed before production use.
+quality_rules:
+- id: unique_golden_id
+  check: unique_golden_id
+  description: golden_id unique
+  target: 1261197
+  minimum_pass_rate: 0.99
+- id: crosswalk_one_golden
+  check: crosswalk_one_golden
+  description: one crosswalk row per source key
+  target: 3813985
+  minimum_pass_rate: 0.99
+- id: account_linked
+  check: account_linked
+  description: accounts link to a customer
+  target: 12569692
+  minimum_pass_rate: 0.99
+- id: valid_dpd
+  check: valid_dpd
+  description: days past due is nonnegative
+  target: 12569692
+  minimum_pass_rate: 0.99
+- id: valid_account_values
+  check: valid_account_values
+  description: overdue estimates are nonnegative and do not exceed nonnegative balances;
+    negative balances represent credits
+  target: 12569692
+  minimum_pass_rate: 0.99
+- id: negative_balance_overdue
+  check: negative_balance_overdue
+  description: credit/net-negative balances do not generate overdue estimates
+  target: 12569692
+  minimum_pass_rate: 0.99
+- id: valid_case_dates
+  check: valid_case_dates
+  description: case open dates parse
+  target: 367229
+  minimum_pass_rate: 0.99
+- id: notes_linked
+  check: notes_linked
+  description: notes map to a customer
+  target: 760594
+  minimum_pass_rate: 0.99
+- id: transcripts_linked
+  check: transcripts_linked
+  description: transcripts map to a customer
+  target: 25000
+  minimum_pass_rate: 0.99
+- id: masked_note_contact_pii
+  check: masked_note_contact_pii
+  description: notes have email and phone patterns masked
+  target: 760594
+  minimum_pass_rate: 0.99
+- id: masked_note_customer_names
+  check: masked_note_customer_names
+  description: notes have the customer's first and last names masked
+  target: 760594
+  minimum_pass_rate: 0.99
+- id: masked_transcript_contact_pii
+  check: masked_transcript_contact_pii
+  description: transcripts have email and phone patterns masked
+  target: 25000
+  minimum_pass_rate: 0.99
+- id: crosswalk_confidence_range
+  check: crosswalk_confidence_range
+  description: confidence in [0,1]
+  target: 3813985
+  minimum_pass_rate: 0.99
+- id: masked_transcript_customer_names
+  check: masked_transcript_customer_names
+  description: Transcripts have the customer's first and last names masked
+  target: 25000
+  minimum_pass_rate: 0.99
+- id: source_row_count_customers
+  check: source_row_count_customers
+  description: Source customers row count agrees with release schema
+  target: 1020000
+  minimum_pass_rate: 0.99
+- id: source_row_count_card_accounts
+  check: source_row_count_card_accounts
+  description: Source card_accounts row count agrees with release schema
+  target: 660000
+  minimum_pass_rate: 0.99
+- id: source_row_count_loan_accounts
+  check: source_row_count_loan_accounts
+  description: Source loan_accounts row count agrees with release schema
+  target: 404500
+  minimum_pass_rate: 0.99
+- id: source_row_count_deposit_accounts
+  check: source_row_count_deposit_accounts
+  description: Source deposit_accounts row count agrees with release schema
+  target: 780000
+  minimum_pass_rate: 0.99
+- id: source_row_count_collections_cases
+  check: source_row_count_collections_cases
+  description: Source collections_cases row count agrees with release schema
+  target: 367229
+  minimum_pass_rate: 0.99
+- id: source_row_count_contact_history
+  check: source_row_count_contact_history
+  description: Source contact_history row count agrees with release schema
+  target: 2688337
+  minimum_pass_rate: 0.99
+- id: source_row_count_promises_to_pay
+  check: source_row_count_promises_to_pay
+  description: Source promises_to_pay row count agrees with release schema
+  target: 238815
+  minimum_pass_rate: 0.99
+- id: source_row_count_agent_notes
+  check: source_row_count_agent_notes
+  description: Source agent_notes row count agrees with release schema
+  target: 760594
+  minimum_pass_rate: 0.99
+- id: source_row_count_call_transcripts
+  check: source_row_count_call_transcripts
+  description: Source call_transcripts row count agrees with release schema
+  target: 25000
+  minimum_pass_rate: 0.99
+- id: source_row_count_voice_samples
+  check: source_row_count_voice_samples
+  description: Source voice_samples row count agrees with release schema
+  target: 2000
+  minimum_pass_rate: 0.99
+- id: source_row_count_external
+  check: source_row_count_external
+  description: Source external row count agrees with release schema
+  target: 1000000
+  minimum_pass_rate: 0.99
+- id: source_row_count_loan_instalments
+  check: source_row_count_loan_instalments
+  description: Source loan_instalments row count agrees with release schema
+  target: 14832472
+  minimum_pass_rate: 0.99
+- id: source_row_count_transactions
+  check: source_row_count_transactions
+  description: Source transactions row count agrees with release schema
+  target: 12401924
+  minimum_pass_rate: 0.99
+- id: source_row_count_card_statements
+  check: source_row_count_card_statements
+  description: Source card_statements row count agrees with release schema
+  target: 7531283
+  minimum_pass_rate: 0.99
+- id: source_row_count_account_monthly_snapshot
+  check: source_row_count_account_monthly_snapshot
+  description: Source account_monthly_snapshot row count agrees with release schema
+  target: 12569692
+  minimum_pass_rate: 0.99
+- id: source_row_count_bureau_history
+  check: source_row_count_bureau_history
+  description: Source bureau_history row count agrees with release schema
+  target: 4679562
+  minimum_pass_rate: 0.99
+- id: source_row_count_salary_credit_history
+  check: source_row_count_salary_credit_history
+  description: Source salary_credit_history row count agrees with release schema
+  target: 6000000
+  minimum_pass_rate: 0.99
+- id: source_row_count_model_scores
+  check: source_row_count_model_scores
+  description: Source model_scores row count agrees with release schema
+  target: 1718841
+  minimum_pass_rate: 0.99
+- id: source_row_count_offers
+  check: source_row_count_offers
+  description: Source offers row count agrees with release schema
+  target: 40767
+  minimum_pass_rate: 0.99
+- id: source_row_count_metric_definitions
+  check: source_row_count_metric_definitions
+  description: Source metric_definitions row count agrees with release schema
+  target: 15
+  minimum_pass_rate: 0.99
+- id: source_row_count_benchmark_questions
+  check: source_row_count_benchmark_questions
+  description: Source benchmark_questions row count agrees with release schema
+  target: 35
+  minimum_pass_rate: 0.99
+- id: source_row_count_reference_documents
+  check: source_row_count_reference_documents
+  description: Source reference_documents row count agrees with release schema
+  target: 19
+  minimum_pass_rate: 0.99
+- id: source_row_count_hardship_programs
+  check: source_row_count_hardship_programs
+  description: Source hardship_programs row count agrees with release schema
+  target: 18
+  minimum_pass_rate: 0.99
+- id: source_row_count_qa_checklist
+  check: source_row_count_qa_checklist
+  description: Source qa_checklist row count agrees with release schema
+  target: 10
+  minimum_pass_rate: 0.99
+- id: source_row_count_agents
+  check: source_row_count_agents
+  description: Source agents row count agrees with release schema
+  target: 1000
+  minimum_pass_rate: 0.99
+- id: source_row_count_case_assignment_history
+  check: source_row_count_case_assignment_history
+  description: Source case_assignment_history row count agrees with release schema
+  target: 423830
+  minimum_pass_rate: 0.99
+- id: source_row_count_agent_shifts
+  check: source_row_count_agent_shifts
+  description: Source agent_shifts row count agrees with release schema
+  target: 15317
+  minimum_pass_rate: 0.99
+- id: source_row_count_channel_capacity
+  check: source_row_count_channel_capacity
+  description: Source channel_capacity row count agrees with release schema
+  target: 287
+  minimum_pass_rate: 0.99
+- id: source_row_count_ops_events
+  check: source_row_count_ops_events
+  description: Source ops_events row count agrees with release schema
+  target: 6
+  minimum_pass_rate: 0.99
+- id: source_row_count_geo_reference
+  check: source_row_count_geo_reference
+  description: Source geo_reference row count agrees with release schema
+  target: 656
+  minimum_pass_rate: 0.99
+- id: source_row_count_code_lookups
+  check: source_row_count_code_lookups
+  description: Source code_lookups row count agrees with release schema
+  target: 113
+  minimum_pass_rate: 0.99
+- id: curated_coverage_contact_history
+  check: curated_coverage_contact_history
+  description: 'contact_history.csv: all eligible rows are curated and linked; expected
+    exclusions are reported separately'
+  target: 2164693
+  minimum_pass_rate: 0.99
+- id: curated_coverage_agent_notes
+  check: curated_coverage_agent_notes
+  description: 'agent_notes.csv: all eligible rows are curated and linked; expected
+    exclusions are reported separately'
+  target: 760594
+  minimum_pass_rate: 0.99
+- id: curated_coverage_collections_cases
+  check: curated_coverage_collections_cases
+  description: 'collections_cases.csv: all eligible rows are curated and linked; expected
+    exclusions are reported separately'
+  target: 367229
+  minimum_pass_rate: 0.99
+- id: curated_coverage_promises_to_pay
+  check: curated_coverage_promises_to_pay
+  description: 'promises_to_pay.csv: all eligible rows are curated and linked; expected
+    exclusions are reported separately'
+  target: 238815
+  minimum_pass_rate: 0.99
+- id: account_snapshot_dates_parsed
+  check: account_snapshot_dates_parsed
+  description: All account snapshot month-end dates parse using supported release
+    formats
+  target: 12569692
+  minimum_pass_rate: 0.99
+- id: account_snapshot_linked
+  check: account_snapshot_linked
+  description: All valid-date account snapshot rows link through a CRM crosswalk key
+  target: 12569692
+  minimum_pass_rate: 0.99
+- id: l2_no_sensitive_columns
+  check: l2_no_sensitive_columns
+  description: Masked Layer 2 contains no direct PII, national-ID hashes, or protected
+    attributes outside the pre-aggregated province compliance report
+  target: 102
+  minimum_pass_rate: 0.99
