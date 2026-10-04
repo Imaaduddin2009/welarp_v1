@@ -71,6 +71,9 @@ The Streamlit UI provides bounded queue views, an assigned agent portfolio, cust
 
 Team Contributions: 
 Mohd Imaad (did most of the backend that mixes all layers incl. the last benchmarks)
+
 Sai Kiran (worked mostly with layer 2 and model_calibration and sent the code in a seperate branch)
+
 Lohith (worked with extra benchmarks and sent the right code and responses but didnt commit due to sudden emergency today hence his name isint there on the list)
+
 Aryan (worked w the architecture diagram and also most of layer 1 that was utlised by Imaad)
