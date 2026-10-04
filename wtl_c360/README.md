@@ -69,4 +69,3 @@ The Streamlit UI provides bounded queue views, an assigned agent portfolio, cust
 - Layer 4 labels reflect observed promise outcomes after recorded contacts. They do not identify causal action effects or counterfactual policy value. Recommendations are workflow gates for a human, not autonomous decisions. Small fairness groups are suppressed.
 - Synthetic source data is for demonstration and must not be used for real collections decisions.
 
-See [submission/pre_submission_checklist.md](submission/pre_submission_checklist.md), [submission/architecture.mmd](submission/architecture.mmd), and [submission/demo_script.md](submission/demo_script.md).
