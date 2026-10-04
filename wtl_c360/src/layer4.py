@@ -8,7 +8,12 @@ import time
 from pathlib import Path
 
 import duckdb
+import numpy as np
 import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import brier_score_loss, roc_auc_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -90,8 +95,6 @@ def recommend_action(row: pd.Series) -> tuple[str, str]:
 
 
 def _model_matrix(frame: pd.DataFrame, columns: list[str] | None = None) -> pd.DataFrame:
-    import numpy as np
-
     excluded = {"golden_id", "as_of", "action_date", "label_kept_30d"}
     inputs = frame.drop(columns=[c for c in excluded if c in frame.columns])
     prohibited = FORBIDDEN_MODEL_FIELDS.intersection(map(str.lower, inputs.columns))
@@ -105,9 +108,6 @@ def _model_matrix(frame: pd.DataFrame, columns: list[str] | None = None) -> pd.D
 
 
 def _metrics(y: pd.Series, probability: np.ndarray) -> dict[str, float | None]:
-    import numpy as np
-    from sklearn.metrics import brier_score_loss, roc_auc_score
-
     bins = np.digitize(np.clip(probability, 0, 1), np.linspace(0, 1, 11)[1:-1], right=True)
     calibration = []
     ece = 0.0
@@ -180,11 +180,7 @@ def _fairness_audit(predictions: pd.DataFrame) -> dict[str, object]:
 
 def run_model(as_of_dates: list[str], train_through: str, output_dir: Path) -> dict[str, object]:
     """Train a LightGBM ranker against a logistic baseline using a strict temporal split."""
-    import numpy as np
     from lightgbm import LGBMClassifier
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.pipeline import make_pipeline
-    from sklearn.preprocessing import StandardScaler
 
     output_dir.mkdir(parents=True, exist_ok=True)
     panel = action_panel(as_of_dates)

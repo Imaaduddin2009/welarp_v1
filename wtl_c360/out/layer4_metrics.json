@@ -1,10 +1,10 @@
 {
   "model": {
-    "roc_auc": 0.6007505217657266,
-    "brier_score": 0.2507712887236918,
-    "expected_calibration_error": 0.11376502749824709,
+    "roc_auc": 0.6007382017109636,
+    "brier_score": 0.25077665490728435,
+    "expected_calibration_error": 0.11366780546162358,
     "observed_kept_rate": 0.3956717630548785,
-    "predicted_kept_rate": 0.47935978664917916,
+    "predicted_kept_rate": 0.47936339340315165,
     "calibration_bins": [
       {
         "bin": 0,
@@ -20,45 +20,45 @@
       },
       {
         "bin": 2,
-        "count": 2335,
-        "mean_predicted": 0.253600726216262,
-        "observed_kept_rate": 0.30149892933618844
+        "count": 2334,
+        "mean_predicted": 0.2535733745556605,
+        "observed_kept_rate": 0.30119965724078834
       },
       {
         "bin": 3,
-        "count": 1988,
-        "mean_predicted": 0.3462070588010804,
-        "observed_kept_rate": 0.3148893360160966
+        "count": 1990,
+        "mean_predicted": 0.3462163338884709,
+        "observed_kept_rate": 0.3155778894472362
       },
       {
         "bin": 4,
-        "count": 1775,
-        "mean_predicted": 0.4530307408332482,
-        "observed_kept_rate": 0.36507042253521127
+        "count": 1773,
+        "mean_predicted": 0.45306294085375615,
+        "observed_kept_rate": 0.36491821771009586
       },
       {
         "bin": 5,
-        "count": 2549,
-        "mean_predicted": 0.5482805752278158,
-        "observed_kept_rate": 0.44291879168301296
+        "count": 2550,
+        "mean_predicted": 0.5482745557199378,
+        "observed_kept_rate": 0.4427450980392157
       },
       {
         "bin": 6,
         "count": 2280,
-        "mean_predicted": 0.6489262613435427,
+        "mean_predicted": 0.6489242956646419,
         "observed_kept_rate": 0.4820175438596491
       },
       {
         "bin": 7,
-        "count": 1298,
-        "mean_predicted": 0.7418642367570022,
-        "observed_kept_rate": 0.524653312788906
+        "count": 1299,
+        "mean_predicted": 0.741898805704903,
+        "observed_kept_rate": 0.5250192455735181
       },
       {
         "bin": 8,
-        "count": 447,
-        "mean_predicted": 0.8396562688526646,
-        "observed_kept_rate": 0.48769574944071586
+        "count": 446,
+        "mean_predicted": 0.8397208619791628,
+        "observed_kept_rate": 0.48654708520179374
       },
       {
         "bin": 9,
@@ -69,11 +69,11 @@
     ]
   },
   "logistic_baseline": {
-    "roc_auc": 0.6127826636934877,
-    "brier_score": 0.23768764816678142,
-    "expected_calibration_error": 0.07585969096649053,
+    "roc_auc": 0.6127953716018266,
+    "brier_score": 0.23768734270975564,
+    "expected_calibration_error": 0.07585747612521171,
     "observed_kept_rate": 0.3956717630548785,
-    "predicted_kept_rate": 0.4513476096338233,
+    "predicted_kept_rate": 0.4513538384959854,
     "calibration_bins": [
       {
         "bin": 0,
@@ -90,38 +90,38 @@
       {
         "bin": 2,
         "count": 2713,
-        "mean_predicted": 0.25421220127293565,
+        "mean_predicted": 0.2542332700714773,
         "observed_kept_rate": 0.2871360117950608
       },
       {
         "bin": 3,
-        "count": 2003,
-        "mean_predicted": 0.34088017451667324,
-        "observed_kept_rate": 0.32451323015476785
+        "count": 2002,
+        "mean_predicted": 0.34085744219060476,
+        "observed_kept_rate": 0.3246753246753247
       },
       {
         "bin": 4,
         "count": 1806,
-        "mean_predicted": 0.45924267944154396,
+        "mean_predicted": 0.4591762717817678,
         "observed_kept_rate": 0.3554817275747508
       },
       {
         "bin": 5,
         "count": 3773,
-        "mean_predicted": 0.5511326792890292,
+        "mean_predicted": 0.551107892589381,
         "observed_kept_rate": 0.4577259475218659
       },
       {
         "bin": 6,
         "count": 2310,
-        "mean_predicted": 0.6355086286605558,
+        "mean_predicted": 0.6354793382973712,
         "observed_kept_rate": 0.5233766233766234
       },
       {
         "bin": 7,
-        "count": 344,
-        "mean_predicted": 0.7301483025511422,
-        "observed_kept_rate": 0.561046511627907
+        "count": 345,
+        "mean_predicted": 0.7300454854305874,
+        "observed_kept_rate": 0.5594202898550724
       },
       {
         "bin": 8,
@@ -149,9 +149,9 @@
           "count": 6327,
           "suppressed": false,
           "observed_kept_rate": 0.39544807965860596,
-          "predicted_positive_rate": 0.477161371898214,
+          "predicted_positive_rate": 0.4773194246878457,
           "true_positive_rate": 0.573541167066347,
-          "false_positive_rate": 0.41411764705882353
+          "false_positive_rate": 0.4143790849673203
         },
         {
           "group": "M",
@@ -196,9 +196,9 @@
           "count": 11730,
           "suppressed": false,
           "observed_kept_rate": 0.38900255754475704,
-          "predicted_positive_rate": 0.4824381926683717,
+          "predicted_positive_rate": 0.4825234441602728,
           "true_positive_rate": 0.5785667324128863,
-          "false_positive_rate": 0.4212362215710897
+          "false_positive_rate": 0.4213757499651179
         },
         {
           "group": "true",
@@ -225,9 +225,9 @@
           "count": 12770,
           "suppressed": false,
           "observed_kept_rate": 0.3952231793265466,
-          "predicted_positive_rate": 0.48997650743931087,
+          "predicted_positive_rate": 0.49005481597494127,
           "true_positive_rate": 0.5902516346344363,
-          "false_positive_rate": 0.424446458630066
+          "false_positive_rate": 0.4245759419914541
         },
         {
           "group": "true",
@@ -254,9 +254,9 @@
           "count": 10942,
           "suppressed": false,
           "observed_kept_rate": 0.4077865106927436,
-          "predicted_positive_rate": 0.5222080058490222,
+          "predicted_positive_rate": 0.5222993968195943,
           "true_positive_rate": 0.6239354549529359,
-          "false_positive_rate": 0.4521604938271605
+          "false_positive_rate": 0.45231481481481484
         },
         {
           "group": "true",

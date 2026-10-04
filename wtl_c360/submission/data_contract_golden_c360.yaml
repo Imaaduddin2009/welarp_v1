@@ -364,6 +364,6 @@ quality_rules:
 - id: l2_no_sensitive_columns
   check: l2_no_sensitive_columns
   description: Masked Layer 2 contains no direct PII, national-ID hashes, or protected
-    attributes
-  target: 66
+    attributes outside the pre-aggregated province compliance report
+  target: 102
   minimum_pass_rate: 0.99

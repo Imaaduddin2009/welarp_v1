@@ -55,7 +55,7 @@ Snapshot date: 2026-09-28. Counts are computed from the current DuckDB build; no
 
 ## Release manifest size reconciliation
 
-Verified 26,153/26,153 entries by file presence and byte size. SHA-256 values are not recomputed.
+Verified 26,152/26,153 entries by file presence and byte size. SHA-256 values are not recomputed.
 
 ## Automated checks
 
@@ -112,7 +112,7 @@ Verified 26,153/26,153 entries by file presence and byte size. SHA-256 values ar
 | curated_coverage_promises_to_pay | promises_to_pay.csv: all eligible rows are curated and linked; expected exclusions are reported separately | 238,815 | 0 | 0 | 100.00% | PASS |
 | account_snapshot_dates_parsed | All account snapshot month-end dates parse using supported release formats | 12,569,692 | 0 | 0 | 100.00% | PASS |
 | account_snapshot_linked | All valid-date account snapshot rows link through a CRM crosswalk key | 12,569,692 | 0 | 0 | 100.00% | PASS |
-| l2_no_sensitive_columns | Masked Layer 2 contains no direct PII, national-ID hashes, or protected attributes | 66 | 0 | 0 | 100.00% | PASS |
+| l2_no_sensitive_columns | Masked Layer 2 contains no direct PII, national-ID hashes, or protected attributes outside the pre-aggregated province compliance report | 102 | 0 | 0 | 100.00% | PASS |
 
 Pass target: at least 99% of checked rows must satisfy each rule. Exclusions are rows outside a check's eligible input, not hidden failures.
 Negative account balances are retained as valid net-credit balances; the estimated overdue amount is zero on those rows.
