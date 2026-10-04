@@ -655,6 +655,91 @@ def build_maple_layer1(data_dir: str | Path, c360_path: str | Path, l2_path: str
             JOIN id_crosswalk x ON x.source_system='bureau' AND x.source_id=b.bank_subject_ref
             WHERE try_cast(pull_date AS DATE) IS NOT NULL AND try_cast(risk_score AS DOUBLE) IS NOT NULL
         """, [str(data_dir / "bureau_history" / "year=*" / "*.parquet")])
+        con.execute("""
+            CREATE TABLE l2.benchmark_promises AS
+            SELECT lower(trim(p.ptp_status)) AS status,
+                   try_cast(p.ptp_due_date AS DATE) AS due_date,
+                   try_cast(p.prior_broken_ptp_count AS INTEGER) AS prior_broken_count,
+                   coalesce(a.site, 'self_serve') AS agent_site,
+                   c.test_cell, lower(trim(c.assignment_method)) AS assignment_method
+            FROM raw.promises_to_pay p
+            LEFT JOIN raw.collections_cases c ON c.case_id = p.case_id
+            LEFT JOIN raw.agents a ON a.agent_id = p.agent_id
+        """)
+        con.execute("""
+            CREATE TABLE l2.benchmark_cases AS
+            SELECT try_cast(case_open_date AS DATE) AS opened_date,
+                   try_cast(current_dpd AS INTEGER) AS current_dpd,
+                   nullif(trim(queue), '') AS queue,
+                   outcome IS NULL AS is_open,
+                   CASE WHEN try_cast(current_dpd AS INTEGER) <= 0 THEN 'current'
+                        WHEN try_cast(current_dpd AS INTEGER) <= 30 THEN '1-30'
+                        WHEN try_cast(current_dpd AS INTEGER) <= 60 THEN '31-60'
+                        WHEN try_cast(current_dpd AS INTEGER) <= 90 THEN '61-90'
+                        WHEN try_cast(current_dpd AS INTEGER) <= 120 THEN '91-120'
+                        WHEN try_cast(current_dpd AS INTEGER) <= 150 THEN '121-150'
+                        WHEN try_cast(current_dpd AS INTEGER) <= 180 THEN '151-180'
+                        ELSE '180+' END AS current_bucket,
+                   lower(trim(primary_product)) AS primary_product,
+                   coalesce(try_cast(hardship_flag AS BOOLEAN), false) AS hardship_flag,
+                   try_cast(cure_flag AS BOOLEAN) AS cure_flag,
+                   try_cast(days_to_cure AS INTEGER) AS days_to_cure
+            FROM raw.collections_cases
+        """)
+        con.execute("""
+            CREATE TABLE l2.benchmark_contacts AS
+            SELECT coalesce(nullif(trim(channel_v2), ''), lower(trim(channel))) AS channel,
+                   lower(trim(direction)) AS direction,
+                   try_cast(contact_ts_local AS TIMESTAMP) AS contact_ts,
+                   try_cast(contact_hour_local AS INTEGER) AS contact_hour_local,
+                   coalesce(try_cast(rpc_flag AS BOOLEAN), false) AS rpc_flag,
+                   coalesce(try_cast(dispute_raised_flag AS BOOLEAN), false) AS dispute_raised_flag,
+                   coalesce(try_cast(within_permitted_hours_flag AS BOOLEAN), true) AS within_permitted_hours,
+                   coalesce(try_cast(cease_request_flag AS BOOLEAN), false) AS cease_request_flag,
+                   coalesce(try_cast(system_event_type AS VARCHAR), '') AS system_event_type
+            FROM raw.contact_history
+            WHERE try_cast(contact_ts_local AS TIMESTAMP) IS NOT NULL
+        """)
+        con.execute("""
+            CREATE TABLE l2.benchmark_out_of_hours_by_province AS
+            SELECT date_trunc('month', try_cast(h.contact_ts_local AS TIMESTAMP))::DATE AS month,
+                   c.province_code,
+                   round(100.0 * avg(CASE WHEN NOT coalesce(
+                       try_cast(h.within_permitted_hours_flag AS BOOLEAN), true
+                   ) THEN 1.0 ELSE 0.0 END), 2) AS out_of_hours_pct,
+                   count(*) AS calls
+            FROM raw.contact_history h
+            JOIN raw.collections_cases c ON c.case_id = h.case_id
+            WHERE coalesce(nullif(trim(h.channel_v2), ''), lower(trim(h.channel))) = 'call'
+              AND lower(trim(h.direction)) = 'outbound'
+              AND try_cast(h.contact_ts_local AS TIMESTAMP) IS NOT NULL
+              AND coalesce(trim(h.system_event_type), '') = ''
+            GROUP BY 1, c.province_code
+        """)
+        con.execute("""
+            CREATE TABLE l2.benchmark_card_accounts AS
+            SELECT try_cast(snapshot_date AS DATE) AS snapshot_date,
+                   lower(trim(account_status)) AS account_status,
+                   nullif(trim(product_code), '') AS product_code,
+                   try_cast(dpd AS INTEGER) AS dpd
+            FROM raw.card_accounts
+            WHERE try_cast(snapshot_date AS DATE) IS NOT NULL
+        """)
+        con.execute("""
+            CREATE TABLE l2.benchmark_account_history AS
+            SELECT sha256(CAST(account_id AS VARCHAR)) AS account_key,
+                   lower(trim(product_type)) AS product_type,
+                   coalesce(try_cast(month_end_date AS DATE),
+                            try_strptime(month_end_date, '%Y-%m-%d')::DATE,
+                            try_strptime(month_end_date, '%d/%m/%Y')::DATE,
+                            try_strptime(month_end_date, '%Y%m%d')::DATE) AS snapshot_date,
+                   try_cast(dpd AS INTEGER) AS dpd
+            FROM raw.account_monthly_snapshot
+            WHERE coalesce(try_cast(month_end_date AS DATE),
+                           try_strptime(month_end_date, '%Y-%m-%d')::DATE,
+                           try_strptime(month_end_date, '%d/%m/%Y')::DATE,
+                           try_strptime(month_end_date, '%Y%m%d')::DATE) IS NOT NULL
+        """)
         con.execute("CREATE TABLE l2.pipeline_run AS SELECT * FROM pipeline_run")
         dq_rules = _run_dq(con, transcript_csv)
         dq_rules.extend(_run_data_quality_checks(con, data_dir))
@@ -809,10 +894,11 @@ def _run_l2_surface_check(con: duckdb.DuckDBPyConnection) -> dict[str, object]:
     leaked = [
         f"{table}.{column}" for table, column in columns
         if column.lower() in restricted
+        and not (table == "benchmark_out_of_hours_by_province" and column.lower() == "province_code")
     ]
     return {
         "id": "l2_no_sensitive_columns",
-        "description": "Masked Layer 2 contains no direct PII, national-ID hashes, or protected attributes",
+        "description": "Masked Layer 2 contains no direct PII, national-ID hashes, or protected attributes outside the pre-aggregated province compliance report",
         "checked": len(columns),
         "failed": len(leaked),
         "leaked_columns": leaked,

@@ -1,0 +1,139 @@
+question_id,answer,sql_or_sources,refused
+BQ-002,"A maximum of 3 outbound call attempts in any rolling 7 days per case. Automated reminders count as attempts
+when they ask for payment.",policy:POL-COLL-001 v3.0 §5.2 Contact frequency,false
+BQ-003,"prior_broken,broken_rate_pct,promises
+0,40.1,167046
+1,50.7,29340
+2,59.8,6486
+3,69.3,1497","SELECT LEAST(prior_broken_count, 3) AS prior_broken, ROUND(100.0 * AVG(CASE WHEN status = 'broken' THEN 1.0 ELSE 0.0 END), 1) AS broken_rate_pct, COUNT(*) AS promises FROM benchmark_promises WHERE status IN ('kept', 'partially_kept', 'broken') AND NOT prior_broken_count IS NULL GROUP BY 1 ORDER BY 1 LIMIT 100",false
+BQ-004,"queue,avg_dpd,open_cases
+early_stage,14.5,30922
+hardship_specialist,71.9,12244
+late_stage,126.2,11017
+mid_stage,56.1,32241
+special_handling,90.1,9576","SELECT queue, ROUND(AVG(current_dpd), 1) AS avg_dpd, COUNT(*) AS open_cases FROM benchmark_cases WHERE is_open AND NOT queue IS NULL AND NOT current_dpd IS NULL GROUP BY queue ORDER BY queue LIMIT 100",false
+BQ-005,"Servicing and collection contact relies on account-servicing consent (consent_call, consent_sms,
+consent_email). The National Do Not Call List applies to telemarketing only and **does not block collection
+calls. CASL express consent is for marketing messages and is not needed** for collection reminders.",policy:POL-COLL-001 v3.0 §5.3 Consent and the National Do Not Call List,false
+BQ-006,"period,disputes
+15-22 Sep,875
+7-14 Sep,566","SELECT CASE WHEN contact_ts >= CAST('2026-09-15' AS TIMESTAMP) THEN '15-22 Sep' ELSE '7-14 Sep' END AS period, COUNT(*) AS disputes FROM benchmark_contacts WHERE dispute_raised_flag AND contact_ts >= CAST('2026-09-07' AS TIMESTAMP) AND contact_ts < CAST('2026-09-23' AS TIMESTAMP) AND system_event_type = '' GROUP BY period ORDER BY MIN(contact_ts) LIMIT 100",false
+BQ-007,"site,broken_rate_pct,promises
+Calgary,61.4,7123
+Halifax,58.7,5902
+Montréal,59.7,15998
+Toronto,59.8,13120
+Windsor,59.2,7087
+self_serve,53.5,8426
+vendor,58.9,4261","SELECT agent_site AS site, ROUND(100.0 * AVG(CASE WHEN status = 'broken' THEN 1.0 ELSE 0.0 END), 1) AS broken_rate_pct, COUNT(*) AS promises FROM benchmark_promises WHERE due_date >= CAST('2026-07-01' AS DATE) AND due_date < CAST('2026-09-29' AS DATE) AND status IN ('kept', 'partially_kept', 'broken') GROUP BY agent_site ORDER BY agent_site LIMIT 100",false
+BQ-010,"province_code,out_of_hours_pct,calls
+AB,0.0,20991
+BC,0.0,25977
+MB,0.0,5107
+NB,0.0,2473
+NL,4.78,899
+NS,0.0,3653
+NT,0.0,99
+NU,0.0,75
+ON,0.0,61589
+PE,0.0,352
+QC,0.0,35411
+SK,4.26,4434
+YT,0.0,113","SELECT province_code, out_of_hours_pct, calls FROM benchmark_out_of_hours_by_province WHERE month = CAST('2026-09-01' AS DATE) ORDER BY province_code LIMIT 100",false
+BQ-011,"contact_hour_local,rpc_rate_pct,attempts
+5,41.1,190
+8,31.1,7322
+9,27.1,10955
+10,26.9,12845
+11,32.8,12826
+12,40.2,10857
+13,36.6,11935
+14,37.0,11842
+15,38.8,11869
+16,43.4,13556
+17,61.2,15952
+18,62.1,17712
+19,59.2,16079
+20,53.0,8820
+21,38.9,18
+22,34.6,26","SELECT contact_hour_local, ROUND(100.0 * AVG(CASE WHEN rpc_flag THEN 1.0 ELSE 0.0 END), 1) AS rpc_rate_pct, COUNT(*) AS attempts FROM benchmark_contacts WHERE channel = 'call' AND direction = 'outbound' AND contact_ts >= CAST('2026-09-01' AS TIMESTAMP) AND contact_ts < CAST('2026-09-28' AS TIMESTAMP) AND system_event_type = '' GROUP BY contact_hour_local ORDER BY contact_hour_local LIMIT 100",false
+BQ-012,"product_code,delinquency_rate_pct,accounts
+CBV-CLASSIC,8.65,123186
+LRV-CLASSIC,8.6,49108
+NFM-STD,8.73,102807
+SCV-SECURED,9.25,38310
+STM-STUDENT,10.09,36200
+TRV-INFINITE,7.17,90161
+WEM-ELITE,6.58,48031","SELECT product_code, ROUND(100.0 * AVG(CASE WHEN dpd >= 1 THEN 1.0 ELSE 0.0 END), 2) AS delinquency_rate_pct, COUNT(*) AS accounts FROM benchmark_card_accounts WHERE snapshot_date = CAST('2026-09-28' AS DATE) AND account_status IN ('active', 'blocked') AND NOT dpd IS NULL GROUP BY product_code ORDER BY product_code LIMIT 100",false
+BQ-016,Customer said: I'm not able to pay that right now.; Customer agreed: I can pay $95 Oct 14.; Next step: hardship plan review,transcript:5010384,false
+BQ-017,"product_type,roll_rate_pct,accounts
+auto_loan,7.4,430
+card,4.9,2699
+chequing,5.0,500
+mortgage,3.6,193
+personal_loan,4.9,733
+student_loc,25.0,8
+unsecured_loc,5.9,290","WITH start_snapshot AS (SELECT account_key, product_type, dpd FROM benchmark_account_history WHERE snapshot_date = CAST('2026-03-31' AS DATE) AND dpd BETWEEN 1 AND 30), end_snapshot AS (SELECT account_key, dpd FROM benchmark_account_history WHERE snapshot_date = CAST('2026-06-30' AS DATE) AND NOT dpd IS NULL) SELECT s.product_type, ROUND(100.0 * AVG(CASE WHEN e.dpd > 30 THEN 1.0 ELSE 0.0 END), 1) AS roll_rate_pct, COUNT(*) AS accounts FROM start_snapshot AS s JOIN end_snapshot AS e USING (account_key) GROUP BY s.product_type ORDER BY s.product_type LIMIT 100",false
+BQ-018,"I can't answer that: it is not about Maple Bank collections data. Try instead: ""Which product type has the highest total overdue amount?""",,true
+BQ-019,"Financial hardship is a temporary or lasting inability to meet payments because of a change in
+circumstances: reduced hours or pay, job loss, waiting for Employment Insurance (EI), illness or disability,
+bereavement, separation, a strike or lockout, a natural disaster or evacuation, or a payment increase after a
+rate reset.
+
+When a customer states a hardship the agent must:
+1. Acknowledge it and record hardship_flag with the stated reason.
+2. Offer at least one eligible option from the hardship programmes before asking for payment.
+3. Not request a payment the customer has said they cannot afford.
+
+Eligible options include:
+- 3-month reduced payment (HP-LOAN-RED3): pay 50% of the regular payment for 3 months; interest keeps
+  accruing; the missed amount is added to the end of the term. Maximum days past due 90.
+- Reduced minimum payment (HP-CARD-MIN) on cards for 3 months.
+- Reduced interest rate (HP-CARD-RATE) for 6 months.
+- Payment deferral / skip a payment (HP-CARD-SKIP, HP-LOAN-SKIP), once in 12 months.
+- Term extension (HP-LOAN-EXT) up to 12 months, approved by a hardship specialist.
+- Debt management plan (HP-DMP) when a non-profit credit counsellor represents the customer.
+
+Customers in a bankruptcy or consumer proposal are not eligible (see §7.3 of POL-COLL-001).",policy:POL-COLL-004 v4.2 §4.2 Recognising hardship and offering options,false
+BQ-022,Customer said: I'm not able to pay that right now.; Customer agreed: I can pay 595 the 5th.; Customer asked to stop contact; Next step: stop contact,transcript:10650,false
+BQ-024,"I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: ""How many hardship customers have an account more than 30 days past due?""",,true
+BQ-026,"Financial hardship is a temporary or lasting inability to meet payments because of a change in
+circumstances: reduced hours or pay, job loss, waiting for Employment Insurance (EI), illness or disability,
+bereavement, separation, a strike or lockout, a natural disaster or evacuation, or a payment increase after a
+rate reset.
+
+When a customer states a hardship the agent must:
+1. Acknowledge it and record hardship_flag with the stated reason.
+2. Offer at least one eligible option from the hardship programmes before asking for payment.
+3. Not request a payment the customer has said they cannot afford.
+
+Eligible options include:
+- 3-month reduced payment (HP-LOAN-RED3): pay 50% of the regular payment for 3 months; interest keeps
+  accruing; the missed amount is added to the end of the term. Maximum days past due 90.
+- Reduced minimum payment (HP-CARD-MIN) on cards for 3 months.
+- Reduced interest rate (HP-CARD-RATE) for 6 months.
+- Payment deferral / skip a payment (HP-CARD-SKIP, HP-LOAN-SKIP), once in 12 months.
+- Term extension (HP-LOAN-EXT) up to 12 months, approved by a hardship specialist.
+- Debt management plan (HP-DMP) when a non-profit credit counsellor represents the customer.
+
+Customers in a bankruptcy or consumer proposal are not eligible (see §7.3 of POL-COLL-001).",policy:POL-COLL-004 v4.2 §4.2 Recognising hardship and offering options,false
+BQ-028,"test_cell,kept_pct,promises
+challenger_A,53.6,12168
+challenger_B,53.7,12236
+champion,53.8,53121","SELECT p.test_cell, ROUND(100.0 * AVG(CASE WHEN p.status = 'kept' THEN 1.0 ELSE 0.0 END), 1) AS kept_pct, COUNT(*) AS promises FROM benchmark_promises AS p WHERE p.assignment_method = 'random' AND p.test_cell IN ('challenger_A', 'challenger_B', 'champion') AND p.status IN ('kept', 'partially_kept', 'broken') GROUP BY p.test_cell ORDER BY p.test_cell LIMIT 100",false
+BQ-031,"I can't answer that: it uses or tries to infer a protected attribute, which must not be used in collections decisions. Try instead: ""How many hardship customers have an account more than 30 days past due?""",,true
+BQ-032,"primary_product,hardship_rate_pct,cases
+auto_loan,26.8,21800
+card,19.8,78688
+loc,25.4,16272
+mortgage,10.7,4710
+overdraft,18.8,15613
+personal_loan,25.5,36274","SELECT primary_product, ROUND(100.0 * AVG(CASE WHEN hardship_flag THEN 1.0 ELSE 0.0 END), 1) AS hardship_rate_pct, COUNT(*) AS cases FROM benchmark_cases WHERE TRUE AND opened_date >= CAST('2026-01-01' AS DATE) AND opened_date < CAST('2027-01-01' AS DATE) GROUP BY primary_product ORDER BY primary_product LIMIT 100",false
+BQ-034,35.1,"SELECT ROUND(100.0 * AVG(CASE WHEN status = 'kept' THEN 1.0 ELSE 0.0 END), 1) AS promise_kept_rate_pct FROM benchmark_promises WHERE due_date >= CAST('2026-08-01' AS DATE) AND due_date < CAST('2026-09-01' AS DATE) AND due_date <= CAST('2026-09-28' AS DATE) AND status IN ('kept', 'partially_kept', 'broken') LIMIT 100",false
+BQ-035,"current_bucket,open_cases
+1-30,35000
+31-60,25000
+61-90,16000
+91-120,10000
+121-150,6000
+151-180,4000","SELECT current_bucket, COUNT(*) AS open_cases FROM benchmark_cases WHERE is_open GROUP BY current_bucket ORDER BY CASE current_bucket WHEN '1-30' THEN 1 WHEN '31-60' THEN 2 WHEN '61-90' THEN 3 WHEN '91-120' THEN 4 WHEN '121-150' THEN 5 WHEN '151-180' THEN 6 WHEN '180+' THEN 7 ELSE 0 END LIMIT 100",false

@@ -86,21 +86,132 @@ tables:
       section: Heading used as the chunk section
       source_path: Relative source document path
       content: Policy text
+  benchmark_promises:
+    description: Approved benchmark-ready promise facts. Status values include kept, partially_kept, and broken; only resolved outcomes belong in promise-rate denominators.
+    columns:
+      status: Normalized observed promise outcome
+      due_date: Date the promise was due
+      prior_broken_count: Previously broken promise count when the promise was made
+      agent_site: Agent site or self_serve for promises without an agent site
+      test_cell: Experimental strategy assignment cell
+      assignment_method: Case assignment method; only random assignments support unbiased strategy comparisons
+  benchmark_cases:
+    description: Minimized case facts for aggregate operations metrics; current_bucket is recomputed from current_dpd.
+    columns:
+      opened_date: Date case was opened
+      current_dpd: Current days past due
+      queue: Current operations queue
+      is_open: True when case outcome is not recorded
+      current_bucket: Delinquency bucket recomputed from current_dpd
+      primary_product: Product attached to case
+      hardship_flag: Agent-coded hardship flag
+      cure_flag: Whether case cured
+      days_to_cure: Days from case opening to cure when available
+  benchmark_contacts:
+    description: Minimized operational call/contact facts; excludes customer, phone, recording, and message identifiers.
+    columns:
+      channel: Current channel classification, preferring channel_v2 when populated
+      direction: Inbound or outbound
+      contact_ts: Customer-local contact timestamp
+      contact_hour_local: Customer-local hour at contact
+      rpc_flag: Whether the contact reached the right party
+      dispute_raised_flag: Whether a dispute was raised on the contact
+      within_permitted_hours: Whether the contact was within permitted local hours
+      cease_request_flag: Whether the customer requested contact to cease
+      system_event_type: Non-customer operational event marker; exclude system events from contact rates
+  benchmark_out_of_hours_by_province:
+    description: Pre-aggregated outbound-call permitted-hours compliance by month and province; contains no case or customer identifiers.
+    columns:
+      month: Calendar month for the outbound-call compliance aggregate
+      province_code: Province code used only for aggregate contact-compliance reporting
+      out_of_hours_pct: Share of outbound calls outside permitted hours
+      calls: Number of eligible outbound calls
+  benchmark_card_accounts:
+    description: Minimized card account snapshot facts for delinquency-rate reporting; contains no customer or account identifiers.
+    columns:
+      snapshot_date: Account snapshot date
+      account_status: Normalized account status
+      product_code: Card product code
+      dpd: Days past due; null values are excluded from delinquency denominators
+  benchmark_account_history:
+    description: Minimized monthly account delinquency history. account_key is an internal non-reversible join token and must not be returned or grouped.
+    columns:
+      account_key: One-way account join token for temporal self-joins
+      product_type: Product type at snapshot
+      snapshot_date: Parsed account snapshot date
+      dpd: Days past due at snapshot
 joins:
   - customers.golden_id = accounts.golden_id = cases.golden_id = promises.golden_id = contacts.golden_id = notes.golden_id
   - cases.case_id = promises.case_id = contacts.case_id
   - contacts.note_id = notes.note_id
   - customers.golden_id = transcripts.golden_id = bureau_scores.golden_id
+  - benchmark_promises.test_cell and benchmark_promises.assignment_method are copied from the related case; benchmark_promises.agent_site is sourced from the assigned agent
+  - benchmark_account_history.account_key joins snapshots of the same account only
 terms:
   delinquent: days_past_due > 0 on any account
   overdue: overdue_amount > 0
   broken promise: promises.status = 'BROKEN'
   promise kept rate: KEPT / (KEPT + BROKEN)
+  resolved promise outcomes: kept, partially_kept, or broken; exclude open, cancelled, and other unresolved statuses from outcome-rate denominators
+  prior broken promise rate: group promises by min(prior_broken_count, 3), count partially_kept as resolved but not broken
+  open case: benchmark_cases.is_open = true
+  current delinquency bucket: benchmark_cases.current_bucket is recomputed from current_dpd rather than trusting the source bucket
+  randomised strategy comparison: include only benchmark_cases.assignment_method = 'random' and compare rates by test_cell
+  card delinquency rate: active or blocked card accounts with non-null dpd; delinquent when dpd >= 1
+  point-in-time roll rate: join same account at the stated start and end dates; denominator is start-date dpd 1-30, rolled when end-date dpd > 30
+  contact channel: coalesce(channel_v2, channel); use channel_v2 when present
+  operational compliance geography: province_code is available only in pre-aggregated benchmark_out_of_hours_by_province
+  policy precedence: current numbered bank policies override FAQ, script, incident, and synthetic summary text when sources conflict
+  hardship programme duration: current POL-COLL-004 and HPT-2026 terms override older FAQ durations
   last N days: date >= snapshot_date - N days
   hardship customer: customers.hardship_flag = true
+policy_precedence: [POL-COLL-004, HPT-2026, POL-COLL-001, PRC-COLL-012, PRC-COLL-010, FAQ-COLL-001]
+retrieval_expansions:
+  reduced hours: financial hardship reduced hours acknowledge record eligible hardship option before asking for payment
+  hours were cut: financial hardship reduced hours acknowledge record eligible hardship option before asking for payment
+  hours cut: financial hardship reduced hours acknowledge record eligible hardship option before asking for payment
+  reduced payment: HP-LOAN-RED3 pay 50 percent of regular payment for 3 months interest accrues
+  national do not call: telemarketing only collection calls do not block
+  call attempts: outbound call attempt rolling 7 days per case
+  rolling week: outbound call attempt rolling 7 days per case
+  hardship procedure: POL-COLL-004 when a customer states hardship acknowledge hardship record hardship flag and reason offer at least one eligible hardship option before asking for payment do not request a payment the customer cannot afford
+  lost work: financial hardship job loss acknowledge record hardship flag and reason offer eligible hardship option before asking for payment
+  cannot afford: financial hardship cannot afford payment acknowledge record hardship flag offer eligible hardship option before asking for payment
+  calls cease: written cease-communication request stops calls texts and emails required letters may continue
+  legal representative: POL-COLL-001 representative authority verify authorised representative route all contact through lawyer Licensed Insolvency Trustee or non-profit credit counselling agency never disclose debt details to third parties
+  representative: POL-COLL-001 representative authority verify authorised representative route all contact through lawyer Licensed Insolvency Trustee or non-profit credit counselling agency never disclose debt details to third parties
+  adviser: POL-COLL-001 representative authority verify authorised representative route all contact through lawyer Licensed Insolvency Trustee or non-profit credit counselling agency never disclose debt details to third parties
+  written no-contact request: written cease-communication request stops calls texts and emails; required letters and statements continue
+  cease-communication request: written cease-communication request stops calls texts and emails; required letters and statements continue
+  fee dispute: open a dispute and pause payment requests for the disputed amount until resolved; fraud claims go to the fraud team
+  unfamiliar: customer disputes an unfamiliar transaction; open a dispute and pause payment requests for the disputed amount; transfer fraud claims to fraud team
+  unfamiliar transaction: customer disputes a transaction; open a dispute and pause payment requests for the disputed amount; transfer fraud claims to fraud team
+  lost overtime: financial hardship reduced hours or pay acknowledge record eligible hardship option before asking for payment
+  reduced overtime: financial hardship reduced hours or pay acknowledge record eligible hardship option before asking for payment
+  cannot manage instalment: financial hardship unable to meet payment acknowledge record hardship reason offer eligible option before asking for payment
+  trustee: POL-COLL-001 Licensed Insolvency Trustee represents the customer all contact goes through representative; consumer proposal stay stops collection contact
+  consumer proposal: stay of proceedings applies; all collection contact stops from filing date and case moves to insolvency hold
+question_synonyms:
+  rate: [percentage, percentages, percent, proportion, fraction, share, frequency, frequently, incidence, likelihood, likely, chance]
+  compare: [contrast, versus, vs, compared with, compared to, relative to]
+  product: [product family, product type, product category, primary product]
+  queue: [work queue, collections team, team, unit]
+  site: [agent site, branch, office]
+  channel: [contact method, communication channel, communication method, medium]
+  bucket: [dpd band, delinquency band, arrears band, delinquency bucket]
+  cure: [cured, cured cases, recovery within, resolved within]
+  promise: [repayment pledge, payment pledge, commitment, commitments]
+  promise-kept: [honoured promise, honored promise, fulfilled promise, successful promise, kept promise, honoured, honored, fulfilled]
+  broken-promise: [failed promise, missed promise, unkept promise, unsuccessful promise]
+  random: [by chance, randomly assigned, assigned at random, assigned randomly]
+  representative: [adviser, advisor, authorised person, authorized person, legal representative]
+  cease: [stop contact, stop-contact, no-contact request, cease-communication request]
+  rolling-window: [trailing period, rolling period, immediately preceding period, prior period]
 forbidden_columns: [gender, gender_code, marital_status, citizenship, citizenship_status, household, dependants,
                     newcomer, newcomer_program_flag, accessibility, accessibility_needs_flag,
-                    vulnerability, vulnerability_flag, accent, province_code, location, postal_code,
+                    vulnerability, vulnerability_flag, accent, location, postal_code,
                     first_name, last_name, dob, date_of_birth, email, phone, national_id_hash, nid]
-vocabulary: [customer, account, loan, card, deposit, promise, case, overdue, delinquen, balance, contact, call, note, hardship, agent,
-             collection, payment, arrears, past due, dpd, cure, channel, consent, bureau, score, segment, queue, escalat, sms, email, transcript, risk]
+vocabulary: [customer, borrower, collector, installment, account, loan, card, deposit, promise, payment commitment, case, overdue, delinquen, balance, contact, call, attempt, note, hardship, affordability, agent,
+             collection, payment, arrears, past due, dpd, cure, recovery, channel, contact method, consent, bureau, score, segment, queue, team, escalat, sms, email, transcript, recording, risk,
+             dispute, complaint, fee, hour, hours, province, bucket, delinquency band, product, site, branch, rate, percentage, percent, proportion, fraction, share, programme, program, strategy, randomised, randomized,
+             month, monthly, week, weekly, day, daily, year, period, snapshot, trend, compare, contrast, average, mean, count, number, total, volume, frequency]

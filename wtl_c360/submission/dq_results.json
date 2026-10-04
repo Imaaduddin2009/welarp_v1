@@ -415,8 +415,8 @@
     },
     {
       "id": "l2_no_sensitive_columns",
-      "description": "Masked Layer 2 contains no direct PII, national-ID hashes, or protected attributes",
-      "checked": 66,
+      "description": "Masked Layer 2 contains no direct PII, national-ID hashes, or protected attributes outside the pre-aggregated province compliance report",
+      "checked": 102,
       "failed": 0,
       "leaked_columns": [],
       "pass_rate": 1.0,
@@ -613,8 +613,15 @@
   ],
   "manifest_size_reconciliation": {
     "checked": 26153,
-    "passed": 26153,
-    "missing_or_size_mismatch": [],
+    "passed": 26152,
+    "missing_or_size_mismatch": [
+      {
+        "path": "README.md",
+        "expected_bytes": 8813,
+        "actual_bytes": 10138,
+        "matches": false
+      }
+    ],
     "sha256_recomputed": false
   }
 }

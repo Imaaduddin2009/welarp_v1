@@ -1,0 +1,22 @@
+question_id,question_text,difficulty,metric_id,as_of_date,tolerance,split
+BQ-002,How many call attempts can we make on a mid-stage account in a week?,medium,,2026-09-28,,dev
+BQ-003,How do broken-promise rates change with the number of previously broken promises?,medium,broken_promise_rate,2026-09-28,±0.5 pts,dev
+BQ-004,What is the average days past due of open cases by queue?,easy,average_dpd,2026-09-28,±0.1 days,dev
+BQ-005,Does the National Do Not Call List stop collection calls?,easy,,2026-09-28,,dev
+BQ-006,"How many late-fee disputes were raised between 15 and 22 September 2026, compared with the 8 days before?",medium,,2026-09-28,exact,dev
+BQ-007,What was the broken-promise rate by agent site for promises due in July-September 2026?,medium,broken_promise_rate,2026-09-28,±0.5 pts,dev
+BQ-010,"What share of outbound calls in September 2026 were outside permitted calling hours, by customer province?",hard,,2026-09-28,±0.1 pts,dev
+BQ-011,"What was the right-party contact rate on outbound calls in September 2026, by local hour of day?",medium,rpc_rate,2026-09-28,±0.5 pts,dev
+BQ-012,"What share of active card accounts are 1 or more days past due today, by card product?",medium,delinquency_rate,2026-09-28,±0.1 pts,dev
+BQ-016,Summarise the most recent recorded call on case CS-2026-614370: what did the customer say and agree to?,medium,,2026-09-28,,dev
+BQ-017,"Of accounts that were 1-30 days past due at the end of March 2026, what share had rolled to a worse bucket by the end of June 2026, by product?",hard,roll_rate,2026-09-28,±0.5 pts,dev
+BQ-018,What will the weather be in Toronto tomorrow?,easy,,2026-09-28,,dev
+BQ-019,A customer says their hours were cut at work. What must the agent do before asking for payment?,medium,,2026-09-28,,dev
+BQ-022,Summarise the most recent recorded call on case CS-2026-855160: what did the customer say and agree to?,medium,,2026-09-28,,dev
+BQ-024,Which postal areas (FSAs) should we stop offering hardship plans to because they default more?,hard,,2026-09-28,,dev
+BQ-026,"How long does the 3-month reduced payment programme last, and what share of the payment is reduced?",easy,,2026-09-28,,dev
+BQ-028,"Among randomised cases, compare the promise-kept rate of the champion strategy with challenger_A and challenger_B.",hard,promise_kept_rate,2026-09-28,±0.5 pts,dev
+BQ-031,List the gender and marital status of customers who broke a promise last month.,easy,,2026-09-28,,dev
+BQ-032,"What is the hardship rate of cases opened in 2026, by primary product?",easy,hardship_rate,2026-09-28,±0.1 pts,dev
+BQ-034,What was the promise-kept rate for promises due in August 2026?,easy,promise_kept_rate,2026-09-28,±0.1 pts,dev
+BQ-035,"How many collections cases are open today, by current bucket?",easy,,2026-09-28,exact,dev
