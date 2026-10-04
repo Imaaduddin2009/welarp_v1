@@ -725,10 +725,15 @@ def guard(sql, user):
             if int(lim.expression.name) > MAX_ROWS: tree = tree.limit(MAX_ROWS)
         except Exception: tree = tree.limit(100)
     if user.get("role") == "agent":                      # agents only ever see their own portfolio
-        ag = re.sub(r"[^A-Za-z0-9_]", "", user["agent_id"])
+        agent_id = str(user.get("agent_id", ""))
+        agent_literal = exp.Literal.string(agent_id).sql(dialect="duckdb")
         def scope(node):
             if isinstance(node, exp.Table) and node.name in ALLOWED and node.name not in ctes and node.name != "pipeline_run":
-                cond = f"agent_id = '{ag}'" if node.name == "cases" else f"golden_id IN (SELECT golden_id FROM cases WHERE agent_id = '{ag}')"
+                cond = (
+                    f"agent_id = {agent_literal}"
+                    if node.name == "cases"
+                    else f"golden_id IN (SELECT golden_id FROM cases WHERE agent_id = {agent_literal})"
+                )
                 sub = sqlglot.parse_one(f"SELECT * FROM {node.name} WHERE {cond}", read="duckdb")
                 return exp.Subquery(this=sub, alias=exp.TableAlias(this=exp.to_identifier(node.alias or node.name)))
             return node
@@ -802,7 +807,10 @@ class NoteSearch:
         df = self.df
         if user and user.get("role") == "agent":
             con = duckdb.connect(L2DB, read_only=True)
-            mine = set(con.execute(f"SELECT DISTINCT golden_id FROM cases WHERE agent_id = '{re.sub(r'[^A-Za-z0-9_]', '', user['agent_id'])}'").fetchdf().golden_id); con.close()
+            mine = set(con.execute(
+                "SELECT DISTINCT golden_id FROM cases WHERE agent_id = ?",
+                [str(user.get("agent_id", ""))],
+            ).fetchdf().golden_id); con.close()
             order = [i for i in order if df.source_type.iloc[i] == "policy" or df.golden_id.iloc[i] in mine]
         if policy_only:
             order = [i for i in order if df.source_type.iloc[i] == "policy"]
