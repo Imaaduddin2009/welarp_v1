@@ -20,7 +20,7 @@ python run_layer3_demo.py                   # full Maple Layer 1 -> masked L2 ->
 python run_layer4.py                        # temporal outcome model and fairness report
 python scripts/run_benchmark.py             # 35 organiser questions; four-column CSV
 python scripts/score_benchmark.py           # score the dev-answer subset
-python -m streamlit run app.py              # agent / analyst / lead / supervisor UI
+python -m streamlit run app.py              # offline agent / team lead / analyst / steward / supervisor UI
 python run_all.py                           # tests, full pipeline, model, benchmark, scoring
 ```
 
@@ -31,7 +31,7 @@ The full-data pipeline expects the supplied release at `data/data`, documents at
 - `out/feature_store.duckdb`: latest nightly feature snapshot.
 - `out/training_history.parquet`: multiple point-in-time feature/label snapshots.
 
-To use another Layer 2 database with the UI or scripts, set `C360_L2_DB`. Streamlit usage-stat collection is disabled in `.streamlit/config.toml`.
+To use another Layer 2 database with the UI or scripts, set `C360_L2_DB`. The Streamlit app always uses offline templates and local text search; it does not require an API key or make internet calls. Streamlit usage-stat collection is disabled in `.streamlit/config.toml`.
 
 ## Offline Q&A design
 
@@ -48,9 +48,20 @@ This replaces the earlier optional Anthropic NL-to-SQL path. The change matches 
 
 The Streamlit UI provides bounded queue views, an assigned agent portfolio, customer/account context, guarded Q&A, identity candidate review, model action review, and audit views. It never initiates contact or executes a payment plan.
 
+## Using the app
+
+- **Queue** — Review the role-scoped work queue, filter cases, and choose a data-backed demo customer.
+- **Customer 360** — Review masked accounts, promises, contacts, consent, lineage, safety reasons, and record an accept/override/escalation.
+- **Ask** — Ask approved questions offline and inspect structured results, query/source citations, freshness, and refusals.
+- **Steward review** — Compare pseudonymous match candidates and record approve/keep-separate decisions without changing the identity crosswalk.
+- **Supervisor approvals** — Approve or reject escalations with a required rationale.
+- **Audit log** — Filter role/action events and download a privacy-safe CSV.
+- **Fairness** — Review aggregate recommendation and override rates; audit only, not used in decisions.
+
 ## Safety and limitations
 
 - The account snapshot has no direct overdue-dollar field. `overdue_amount` is an estimate: `max(minimum_due - payment_made, 0)` when DPD is positive, capped at a nonnegative balance. Negative balances are retained as net credits with zero estimated overdue.
+- Benchmark question BQ-035 has a known gold-data conflict: about 4% of cases have a source delinquency bucket inconsistent with `current_dpd`. The gold answer groups by the inconsistent source bucket, while the release trap expects the bucket to be recomputed from `current_dpd`; the benchmark may therefore score the correct recomputed result as an exact mismatch.
 - System events, invalid contact timestamps, and empty customer references are excluded from curated agent contacts. These exclusions are counted separately in `submission/dq_report.md`.
 - Cross-system identity matching uses DOB/name/phone/postal blocking with a custom weighted score. It is not Splink, and its score is not a calibrated match probability. Ambiguous candidates remain isolated pending review; the observed steward queue is large. The synthetic release has no labeled identity truth set, so precision/recall are not measured.
 - Free-text PII masking uses regex and source-customer first/last names. It is not a guarantee against every indirect identifier; review the generated DQ report before use.
