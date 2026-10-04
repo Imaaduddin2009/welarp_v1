@@ -18,7 +18,7 @@ python run_layer3_demo.py                   # full Maple Layer 1 -> masked L2 ->
 python run_layer4.py                        # temporal outcome model and fairness report
 python scripts/run_benchmark.py             # 35 organiser questions; four-column CSV
 python scripts/score_benchmark.py           # score the dev-answer subset
-python -m streamlit run app.py              # agent / analyst / lead / supervisor UI
+python -m streamlit run app.py              # offline agent / team lead / analyst / steward / supervisor UI
 python run_all.py                           # tests, full pipeline, model, benchmark, scoring
 ```
 
@@ -29,7 +29,7 @@ The full-data pipeline expects the supplied release at `data/data`, documents at
 - `out/feature_store.duckdb`: latest nightly feature snapshot.
 - `out/training_history.parquet`: multiple point-in-time feature/label snapshots.
 
-To use another Layer 2 database with the UI or scripts, set `C360_L2_DB`. Optional LLM-backed NL-to-SQL is enabled only when `ANTHROPIC_API_KEY` is set. SQL validation, role scope, aggregation suppression, and read-only execution still apply.
+To use another Layer 2 database with the UI or scripts, set `C360_L2_DB`. The Streamlit app always uses offline templates and local text search; it does not require an API key or make internet calls. Other scripts may optionally enable LLM-backed NL-to-SQL when `ANTHROPIC_API_KEY` is set. SQL validation, role scope, aggregation suppression, and read-only execution still apply.
 
 ## Pipeline
 
@@ -39,6 +39,16 @@ To use another Layer 2 database with the UI or scripts, set `C360_L2_DB`. Option
 4. **Layer 4** trains LightGBM against a logistic-regression baseline using observed recent contact actions and future promise outcomes. It reports ROC AUC, Brier score and calibration bins, offers policy-gated workflow routing, per-row feature contributions, a restricted-data-only group fairness audit, and human override logging.
 
 The Streamlit UI provides bounded queue views, an assigned agent portfolio, customer/account context, guarded Q&A, identity candidate review, model action review, and audit views. It never initiates contact or executes a payment plan.
+
+## Using the app
+
+- **Queue** — Review the role-scoped work queue, filter cases, and choose a data-backed demo customer.
+- **Customer 360** — Review masked accounts, promises, contacts, consent, lineage, safety reasons, and record an accept/override/escalation.
+- **Ask** — Ask approved questions offline and inspect structured results, query/source citations, freshness, and refusals.
+- **Steward review** — Compare pseudonymous match candidates and record approve/keep-separate decisions without changing the identity crosswalk.
+- **Supervisor approvals** — Approve or reject escalations with a required rationale.
+- **Audit log** — Filter role/action events and download a privacy-safe CSV.
+- **Fairness** — Review aggregate recommendation and override rates; audit only, not used in decisions.
 
 ## Safety and limitations
 

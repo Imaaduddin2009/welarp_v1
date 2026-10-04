@@ -3,8 +3,8 @@
 - Label: first promise outcome recorded within 30 days after an as-of date (kept=1, broken=0).
 - Training rows: 8,807; latest training as-of: 2026-06-30.
 - Holdout rows: 13,539; earliest holdout as-of: 2026-07-31.
-- LightGBM ROC AUC: 0.6007594195830557; Brier: 0.2508.
-- Logistic baseline ROC AUC: 0.6128113876730186; Brier: 0.2377.
+- LightGBM ROC AUC: 0.6007505217657266; Brier: 0.2508.
+- Logistic baseline ROC AUC: 0.6127826636934877; Brier: 0.2377.
 - Top-decile observed kept rate: 0.506; this is ranking yield, not causal uplift or policy value.
 - The training target is conditional on observed collections/contact activity and cannot estimate counterfactual action effects.
 - The LightGBM model uses Layer 2 operational features only. Restricted demographics are joined only in the separate group fairness audit.

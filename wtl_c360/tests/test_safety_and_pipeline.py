@@ -111,8 +111,33 @@ def test_agent_queries_are_limited_to_assigned_portfolio():
         "SELECT golden_id FROM customers ORDER BY golden_id",
         {"role": "agent", "agent_id": "AG-17"},
     )
-    assert "AG17" in sql
+    assert "AG-17" in sql
     assert "FROM customers" in sql
+
+
+@pytest.mark.parametrize(
+    ("agent_id", "expected"),
+    [
+        ("AG-17", ["G1"]),
+        ("AG17", ["G2"]),
+        ("AG-17' OR '1'='1", []),
+    ],
+)
+def test_agent_guard_scopes_exact_ids_and_escapes_literals(
+    tmp_path, monkeypatch, agent_id, expected
+):
+    db_path = tmp_path / "agent_scope.duckdb"
+    with duckdb.connect(str(db_path)) as con:
+        con.execute("CREATE TABLE customers(golden_id VARCHAR)")
+        con.execute("INSERT INTO customers VALUES ('G1'), ('G2')")
+        con.execute("CREATE TABLE cases(golden_id VARCHAR, agent_id VARCHAR)")
+        con.execute("INSERT INTO cases VALUES ('G1','AG-17'), ('G2','AG17')")
+    monkeypatch.setattr(layer2, "L2DB", str(db_path))
+    sql = layer2.guard(
+        "SELECT golden_id FROM customers ORDER BY golden_id",
+        {"role": "agent", "agent_id": agent_id},
+    )
+    assert layer2.run_sql(sql)["golden_id"].tolist() == expected
 
 
 @pytest.mark.parametrize("question", [
